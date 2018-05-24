@@ -6,7 +6,7 @@
 	org 0x004
 	;; interrupt vector
 	
-#include game.asm
+#include game.inc
 
 ;;; main() must finish under 0x800
 main
