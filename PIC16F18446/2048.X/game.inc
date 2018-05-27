@@ -1,18 +1,18 @@
  if 1
-GLOBAL8	equ (0x78)
+LOCAL8	equ (0x28)		;// free for zOS_INP() or baremetal
 TBLSIZ	equ (0x10)		;extern const size_t TBLSIZ;// including code is
 TBLADR	equ (0x00);0x20 in lin.	;extern uint8_t tbl[TBLSIZ];// responsible for..
  endif
 	
 LASTCEL	equ (TBLSIZ-1)		;const LASTCEL = TBLSIZ-1;  // TBLADR and TBLSIZ
-SCOREL	equ (GLOBAL8+0)
-SCOREH	equ (GLOBAL8+1)
-SCOREU	equ (GLOBAL8+2)		;uint24_t score;
-POINTSL	equ (GLOBAL8+3)
-POINTSH	equ (GLOBAL8+4)		;uint16_t points;
-TMPTILT	equ (GLOBAL8+5)
-TMPAPLY	equ (GLOBAL8+6)
-TMP8BIT equ (GLOBAL8+7)
+SCOREL	equ (LOCAL8+0)
+SCOREH	equ (LOCAL8+1)
+SCOREU	equ (LOCAL8+2)		;uint24_t score;
+POINTSL	equ (LOCAL8+3)
+POINTSH	equ (LOCAL8+4)		;uint16_t points;
+TMPTILT	equ (LOCAL8+5)
+TMPAPLY	equ (LOCAL8+6)
+TMP8BIT equ (LOCAL8+7)
 TMP3BIT	equ (PCLATH)		;uint3_t tmp3bit; // PCLATH not used on '313/323
  				;                 // unless performing CALLW
 DIRMASK	equ (0x0f)

@@ -16,7 +16,7 @@
 	include zosmacro.inc
 	
 ;; software interrupt lines used: SI3 to print chars to console
-STDERR	equ	zOS_SI3	; SWI for job 1
+STDOUT	equ	zOS_SI3	; SWI for job 1
 STDOUT2	equ	zOS_SI4	; SWI for job 2
 STDOUT3	equ	zOS_SI5	; SWI for job 3
 STDOUT4	equ	zOS_SI6	; SWI for job 4
