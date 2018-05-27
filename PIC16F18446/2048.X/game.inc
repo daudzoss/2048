@@ -1,7 +1,7 @@
  if 1
 LOCAL8	equ (0x28)		;// free for zOS_INP() or baremetal
 TBLSIZ	equ (0x10)		;extern const size_t TBLSIZ;// including code is
-TBLADR	equ (0x00);0x20 in lin.	;extern uint8_t tbl[TBLSIZ];// responsible for..
+TBLADR	equ (0x00);0x22n0 in lin;extern uint8_t tbl[TBLSIZ];// responsible for..
  endif
 	
 LASTCEL	equ (TBLSIZ-1)		;const LASTCEL = TBLSIZ-1;  // TBLADR and TBLSIZ
@@ -88,6 +88,18 @@ i += 1
 	endw
 	endm			;} // iorlf()
 
+swapbsr	macro	file
+	clrf	file
+	btfsc	bsr,3
+	bsf	file,7
+	btfsc	bsr,2
+	bsf	file,6
+	btfsc	bsr,1
+	bsf	file,5
+	btfsc	bsr,0
+	bsf	file,4
+	endm
+
 iortblf	macro	tbl,fsrnum	;inline void iortblf(uint8_t* tbl,
 	local	fsrn		;                    uint8_t* *fsrnum) {
 	if (fsrnum & 3)
@@ -102,8 +114,14 @@ fsrn set 0
 	  iorlf	tbl,FSR#v(fsrn)L;  *fsrnum |= tbl & 0x00f0;
 	 endif
 	else			; else if (tbl == 0) // bottom of linear space
-	 iorlf	0x20,FSR#v(fsrn)H
-	endif			;  *fsrnum |= 0x2000;
+	 iorlf	0x22,FSR#v(fsrn)H
+ if 1
+  swapbsr	FSR#v(fsrn)L	;  *fsrnum |= 0x2200 | (bsr<<4);
+ else
+  swapf	BSR,w
+  iorwf	FSR#v(fsrn)L,f
+ endif
+endif	
 	endm			;} // iortblf()
 
 Lswitch
