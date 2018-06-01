@@ -12,38 +12,22 @@
 ;;; uncomment to reduce zOS footprint by 100 words (at cost of zOS_FRK/EXE/FND):
 ;zOS_MIN	equ	1
 	
+	org	0
 	include zos.inc
 	include zosmacro.inc
 	
 ;; software interrupt lines used: SI3 to print chars to console
-STDOUT	equ	zOS_SI3	; SWI for job 1
+STDOUT1	equ	zOS_SI3	; SWI for job 1
 STDOUT2	equ	zOS_SI4	; SWI for job 2
 STDOUT3	equ	zOS_SI5	; SWI for job 3
 STDOUT4	equ	zOS_SI6	; SWI for job 4
-UNUSEDI	equ	zOS_SI7	; SWI for job 5
+STDOUT5	equ	zOS_SI7	; SWI for job 5
 
 	pagesel	main
 	goto	main
 
-instanc	macro	port,hb,pin,isr
-	local	clkrat
-#ifdef __DEBUG
-clkrat	equ	.016000000/.000009600
-#else
-clkrat	equ	.020000000/.000009600
-#endif
-	
-	zOS_INP	port,clkrat,PIR1,hb,pin,isr
-#if 1
-	movlw	OUTCHAR		; zOS_MAN(/*UART*/1,20MHz/9600bps,PIR1,PORTB,5);
-	movwi	0[FSR0]		; zOS_ARG(3, OUTCHAR/*only 1 SWI*/);
-#endif
+	include	io.inc		; defines in_isr() and out_brd()
 
-;;;
-	
-#ifdef	TWO_HEAD
-#endif
-	
 ;;; 
 
 main
@@ -57,6 +41,7 @@ main
 	
 	clrw			;void main(void) {
 main
+#if 0
 	banksel	TRISA
 	bsf	TRISA,RA7	; TRISA = 0xb0;
 	bcf	TRISA,RA6	; // xtal <--------startup error? race cond'n?
@@ -82,7 +67,7 @@ main
 	banksel	OPTION_REG
 	bcf	OPTION_REG,T0CS	; OPTION_REG &= ~(1<<TMR0CS);// off Fosc not pin
 	bcf	OPTION_REG,PSA	; OPTION_REG &= ~(1<<PSA);// using max prescaler
-	
+
 	banksel	IOCBP
 	movf	ALL_IOC,w	;
 	movwf	IOCBP		; IOCBP = all_ioc; // IOCIF senses rising optos
@@ -91,6 +76,59 @@ main
 	movlb	0		; // this has to happen at end after all zOS_LAU
 	bsf	INTCON,IOCIE	; INTCON |= 1<<IOCIE; // enable edge sensing HWI
 	clrf	ALL_IOC		; ALL_IOC = 0; // will go nonzero once zOS_CON()
+#endif
 	
+
+HBPORT1	equ	LATA
+HBPIN1	equ	2		; Free PIC16F18446 evaluation board (April 2018)
+RTSFLG1	equ	PIR3		; has the user LED on pin RA2
+#ifdef TX2IF
+RTSFLG2	equ	PIR3
+#else
+RTSFLG2	equ	0		; only on PIC16F18455/56 et al
+#endif
+#ifdef TX3IF
+RTSFLG	equ	?
+#else
+RTSFLG3	equ	0		; only on PIC18 for now :'(
+#endif
+#ifdef TX4IF
+RTSFLG	equ	?
+#else
+RTSFLG4	equ	0		; only on PIC18 for now :'(
+#endif
+#ifdef TX5IF
+RTSFLG	equ	?
+#else
+RTSFLG5	equ	0		; only on PIC18 for now :'(
+#endif
+
+CLKRAT1	equ	.032000000/.000009600
+CLKRAT2	equ	.032000000/.000009600
+CLKRAT3	equ	.032000000/.000009600
+CLKRAT4	equ	.032000000/.000009600
+CLKRAT5	equ	.032000000/.000009600
+	
+	variable i,anselec,tristat
+i = 0
+	while	i < 5
+i += 1
+	if RTSFLG#v(i)
+#ifdef HBPORT#v(i)
+poffset = HBPORT#v(i) - LATA
+anselec	= ANSELA + poffset
+tristat = TRISA + poffset
+	banksel	anselec
+	bcf	anselec,HBPIN#v(i)
+	banksel	tristat
+	bcf	tristat,HBPIN#v(i)
+	movlb	0
+	zOS_INP	i,CLKRAT#v(i),RTSFLG#v(i),HBPORT#v(i),HBPIN#v(i),in_isr
+#else
+	zOS_INP	i,CLKRAT#v(i),RTSFLG#v(i),LATA,3,in_isr
+#endif
+	endif
+	endw
+
 	zOS_RUN	INTCON,INTCON	; zOS_RUN(/*T0IE in*/INTCON, /*T0IF in*/INTCON);
 	end			;}
