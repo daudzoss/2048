@@ -22,17 +22,26 @@ in_isr
 	movf	zOS_AR0,w	;
 	xorlw	'L'		;  case 'L':
 	movlw	NEIGHDN		;   COMMAND = 1<<2; break;
+	btfsc	STATUS,Z	;
+	bra	newchar		;
+	xorlw	'N'		;  case 'N':
+	movlw	-1		;   COMMAND = 255; break;
 	btfsc	STATUS,Z	;  default:
-	bra	newchar		;   COMMAND = 0;
-	clrf	COMMAND		;   return;
+	bra	newchar		;   COMMAND = 0; return;
+	clrf	COMMAND		; }
+	
 	zOS_RFI
 newchar
-	movwf	COMMAND		; }
+	movwf	COMMAND		;} // in_isr()
 monlast
-	zOS_RFI			;} // in_isr()
+	zOS_RFI
+	
 outgrid	
-;;; re-entrant code to print grid here...
+;;; re-entrant code to print grid outside of interrupt context here...
 
+
+
+	
 gamejob	macro	p,rat,rts,hb,pin
 	pagesel	endgame
 	goto	endgame
@@ -41,12 +50,14 @@ vars	set	0x20
 optlo	set	optadrl-vars
 opthi	set	optadrh-vars
 
+	
 gameadr
-#if 0;copied from zOS_MAN()
-	movf	char_io,w	; if (char_io == 0)
+	movf	COMMAND,w	; if (COMMAND == 0)
 	btfsc	STATUS,Z	;  return 0; // back to zOS_CON task
-	return			; switch (char_io) {
+	return			; else {
+	incfsz	COMMAND,
 
+#if 0;copied from zOS_MAN()
 	xorlw	'G'		;
 	btfss	STATUS,Z	; caseG:
 	bra	manchr		; case 'G': // Generate a fork/duplicate of job
@@ -521,6 +532,14 @@ crlf
 	return			;
 #endif;copy from zOS_MAN()
 	
+	
+
+
+
+
+
+
+
 endgame
 	zOS_INP	p,rat,rts,hb,pin,in_isr
 	movlw	low gameadr

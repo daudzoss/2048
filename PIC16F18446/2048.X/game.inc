@@ -1,3 +1,6 @@
+	//FIXME: no pagesel's!!!!
+
+
  if 1
 LOCAL8	equ (0x28)		;// free for zOS_INP() or baremetal
 TBLSIZ	equ (0x10)		;extern const size_t TBLSIZ;// including code is
@@ -508,6 +511,6 @@ turn
 newgame
 	clrf	SCOREL		;void newgame(void) {
 	clrf	SCOREH		; SCOREU = SCOREH = SCOREL = 0;
-	clrf	SCOREU		;
-	call	init		; init();
-	return			;}
+	clrf	SCOREU		; init();
+	pagesel	init
+	goto	init		;}
