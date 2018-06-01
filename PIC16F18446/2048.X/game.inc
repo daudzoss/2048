@@ -10,9 +10,9 @@ SCOREH	equ (LOCAL8+1)
 SCOREU	equ (LOCAL8+2)		;uint24_t score;
 POINTSL	equ (LOCAL8+3)
 POINTSH	equ (LOCAL8+4)		;uint16_t points;
-TMPTILT	equ (LOCAL8+5)
-TMPAPLY	equ (LOCAL8+6)
-TMP8BIT equ (LOCAL8+7)
+TMPAPLY	equ (LOCAL8+5)
+TMP8BIT equ (LOCAL8+6)
+COMMAND	equ (LOCAL8+7)	
 TMP3BIT	equ (PCLATH)		;uint3_t tmp3bit; // PCLATH not used on '313/323
  				;                 // unless performing CALLW
 DIRMASK	equ (0x0f)
