@@ -123,9 +123,9 @@ tristat = TRISA + poffset
 	banksel	tristat
 	bcf	tristat,HBPIN#v(i)
 	movlb	0
-	zOS_INP	i,CLKRAT#v(i),RTSFLG#v(i),HBPORT#v(i),HBPIN#v(i),in_isr
-#else
-	zOS_INP	i,CLKRAT#v(i),RTSFLG#v(i),LATA,3,in_isr
+	gamejob	i,CLKRAT#v(i),RTSFLG#v(i),HBPORT#v(i),HBPIN#v(i)
+#else; // no LED to manage, assign pin-toggler to RA3 MCLR (never an output!)
+	gamejob	i,CLKRAT#v(i),RTSFLG#v(i),LATA,3
 #endif
 	endif
 	endw
