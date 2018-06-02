@@ -63,6 +63,7 @@ setfsrl
 	movwf	FSR0L		;uint4_t setfsrl(uint8_t** fsr0, uint8_t** fsr1,
 	swapf	FSR0L,w		;                uint8_t w) { // w=fsr1flag:cell
 	andlw	DIRMASK		; *fsr0 = w;//preserve w arg before nybble swap
+	pagesel	flag2ofs
 	btfss	STATUS,Z	; if ((w >>= 4) != 0)         // w=0000:fsr1flag
 	call	flag2ofs	;  w = flag2ofs(w);           // w=-4,-1,0,+1,+4
 	andlw	0xff		;
@@ -151,10 +152,12 @@ initval
 	retlw	0x0a		;                            0x0a};// U L
 init
 	movlw	LASTCEL		;void init(void) {
+	pagesel	setfsrs
 	call	setfsrs		; for (uint8_t fsr0 = &TBLADR[15];fsr0>=TBLADR;)
 Linitlp
 	movf	FSR0L,w		;
 	andlw	0x0f		;
+	pagesel	Lswitch
 	call	Lswitch		;
 	movwi	FSR0--		;  *fsr0-- = initval[fsr & 0x0f];
 	incfsz	FSR0L,w		;
@@ -180,6 +183,7 @@ Ldodrop
 	movwf	TMP8BIT		;
 	movwf	TMPAPLY		; TMPAPLY = TMP8BIT+=1; // for picking 2 versus 4
 	movlw	LASTCEL		;
+	pagesel	setfsrs
 	call	setfsrs		; for (setfsrs(&fsr0, NULL, LASTCEL); TMP8BIT>0;)
 Lnextmt
 	moviw	FSR0--		;
@@ -203,6 +207,7 @@ Lpick24
 	return			;} //drop()
 
 setfsrs
+	pagesel	setfsr1
 	call	setfsrl		;uint4_t setfsrs(uint8_t** fsr0, uint8_t** fsr1,
 	clrf	FSR0H		;                uint8_t w) { // w=fsr1flag:cell
 	iortblf	TBLADR,FSR0	; w = setfsrl(fsr0, fsr1, w); // w=0000:fsr1flag
@@ -220,6 +225,7 @@ setfsrs
 empties
 	movlw	LASTCEL		;uint5_t empties(void) {
 	clrf	TMP8BIT		; int8_t TMP8BIT = 0;
+	pagesel	setfsrs
 	call	setfsrs		; for (fsr0 = &TBLADR[LASTCEL]; fsr0 >= TBLADR;)
 Lnext0
 	moviw	FSR0--		;      
@@ -257,6 +263,7 @@ tiltl2r
 	return			;} //tiltl2r()
 	
 tiltr2l
+	pagesel	tiltl2r
 	call	tiltl2r		;uint8_t tiltr2l(uint8_t w) { // iter L, bias R
 	xorlw	0xf3		; return tiltl2r(w) ^ 0xf0 ^ 0x03;
 	return			;} //tiltr2l()
@@ -290,6 +297,7 @@ nxtpair
 	btfsc	STATUS,Z	;                uint4_t w) { // w=0 is fastest
 	bra	Ldirunk		; if (w & DIRMASK)
 	andwf	INDF0,w		;
+	pagesel	flag2ofs
 	call	flag2ofs	;  w = flag2ofs(w & **fsr0); // -4,-1,+1 or +4
 	bra	Lnxtadd		;
 Ldirunk
@@ -298,6 +306,7 @@ Ldirunk
 Lnxtadd
 	addwf	FSR0L,f		; *fsr0 += w;
 	addwf	FSR1L,f		; *fsr1 += w;
+	pagesel	ofs2flag
 	call	ofs2flag	;
 	andwf	INDF0,w		; return ofs2flag(w) & **fsr0;// Z=>FSR1 invalid
 	return			;} // nxtpair()
@@ -305,6 +314,7 @@ Lnxtadd
 savefsr
 	movf	FSR0L,w		;void savefsr(uint8_t* fsr0, uint8_t* fsr1) {
 	subwf	FSR1L,w		;
+	pagesel	ofs2flag
 	call	ofs2flag	; w = ofs2flag(fsr1 - fsr0);
 ;	andwf	INDF0,w		;
 	andlw	DIRMASK		;
@@ -317,10 +327,12 @@ savefsr
 	return			;} //savefsr()
 
 tltmult
+	pagesel	savefsr
 	call	savefsr		;uint1_t tltmult(uint8_t* fsr0, uint8_t* fsr1,
 Lfsr1n0
 	movlw	DIRMASK		;                uint8_t w) {
 	andwf	TMP8BIT,w	; savefsr(fsr0, fsr1); // TMP8BIT=cel#:UDLR
+	pagesel	nxtpair
 	call	nxtpair		; while(1)
 	btfsc	STATUS,Z	;  if (nxtpair(&fsr0,&fsr1,TMP8BIT&DIRMASK)==0)
 	bra	Lallzer		;   break; // past end of row/column
@@ -330,6 +342,7 @@ Lfsr1n0
 	bra	Lfsr1n0		;  else if (*fsr1 & VALMASK) {// found nonzero
 	swapf	TMP8BIT,w	;
 	andlw	0x0f		;   // restore fsr0 only, move *fsr1 into it
+	pagesel	setfsrs
 	call	setfsrs		;   setfsrs(&fsr0, NULL, TMP8BIT >> 4);
 	movlw	VALMASK		;
 	andwf	INDF1,w		;
@@ -337,10 +350,12 @@ Lfsr1n0
 	movlw	DIRMASK		;   *fsr1 &= DIRMASK;
 	andwf	INDF1,f		;   w = (TMP8BIT<<4)|(TMP8BIT>>4);
 	swapf	TMP8BIT,w	;   setfsrs(&fsr0, &fsr1, w);
+	pagesel	setfsrs
 	call	setfsrs		;   return 1; // scoot flag for POINTS;
 	retlw	1		;  }
 Lallzer
 ;	swapf	TMP8BIT,w	; setfsrs(&fsr0,&fsr1,(TMP8BIT<<4)|(TMP8BIT>>4));
+;	pagesel	setfsrs
 ;	call	setfsrs		; return 0; // indicates done with this row/col
 	retlw	0		;} // tltmult()
 
@@ -348,13 +363,17 @@ tilt
 	movwf	TMPAPLY		;uint4_t tilt(uint4_t w) { // w=DURL, preserved
 Lnxttlt
 	swapf	TMPAPLY,w	; for (TMPAPLY=w; TMPAPLY<0x40; TMPAPLY+=0x10) {
+	pagesel	tltstrt
 	call	tltstrt		;  uint8_t w = (TMPAPLY << 4) | (TMPAPLY >> 4);
+	pagesel	setfsrs
 	call	setfsrs		;  uint1_t z = 0;
 Lnxtcel
+	pagesel	tltpair
 	call	tltpair		;  for (setfsrs(&fsr0, &fsr1, tltstrt(w&0xf3));
 	btfss	WREG,7		;       !z; z = (nxtpair(&fsr0, &fsr1, 0)==0)) {
 	bra	Laddpnt		;   int8_t w = tltpair(fsr0, fsr1);//bias to dir
 				;   if (w < 0) {// both *fsr0 and *fsr1 are zero
+	pagesel	tltmult
 	call	tltmult		;    w = tltmult(fsr0, fsr1); // look past fsr1
 	btfss	WREG,0		;    if (w == 0)
 	bra	Ltltcnt		;     break;// if the rest of row/col also zero,
@@ -366,6 +385,7 @@ Laddpnt
 	else
 	 clrw			;
 	endif
+	pagesel	nxtpair
 	call	nxtpair		;   }//... break inner loop, skip nxtpair()
 	btfss	STATUS,Z	;   POINTSL |= w;
 	bra	Lnxtcel		;  }
@@ -392,6 +412,7 @@ lutpow2
 	
 p2m16	macro	file	   	;inline uint8_t p2m16(uint4_t w, uint8_t *file){
 	movwf	file		; *file = w;
+	pagesel	lutpow2
 	call	lutpow2		; w = lutpow2(w);
 	btfss	file,3		;
 	bra	$+3		; if (*file & 0x08)
@@ -415,9 +436,11 @@ cpspair
 	addwf	INDF0,f		; *fsr0 += 1<<VALBITS;
 ;	btfsc	STATUS,C	;
 ;	reset			; // 32768+32768>65535 not even possible?
+	pagesel	savefsr
 	call	savefsr		; savefsr(fsr0, fsr1); // TMP8BIT=cel#:UDLR
 Lscoot
 	clrw			;
+	pagesel	nxtpair
 	call	nxtpair		; while (nxtpair(&fsr0, &fsr1, 0)) {
 	btfsc	STATUS,Z	;
 	bra	Lzerend		;
@@ -433,6 +456,7 @@ Lzerend
 	movlw	DIRMASK		;
 	andwf	INDF0,f		; *fsr0 = 0 | (*fsr0 & DIRMASK);
 	swapf	TMP8BIT,w	;
+	pagesel	setfsrs
 	call	setfsrs		; setfsrs(&fsr0, &fsr1, (TMP8BIT<<4)|(TMP8BIT>>4));
 	swapf	INDF0,w		;
 	andlw	VALMASK		; return *fsr0 >> 4;
@@ -442,17 +466,21 @@ collaps
 	movwf	TMPAPLY		;uint4_t collaps(uint4_t w) { // w=DURL, preserved?
 Lnxtcps
 	swapf	TMPAPLY,w	; for (TMPAPLY=w; TMPAPLY<0x40; TMPAPLY+=0x40) {
+	pagesel	tltstrt
 	call	tltstrt		;  uint8_t w = (TMPAPLY << 4) | (TMPAPLY >> 4);
+	pagesel	setfsrs
 	call	setfsrs		;  uint1_t z = 0;
 Lnxtcec
 	movf	INDF1,w		;  for (setfsrs(&fsr0, &fsr1, tltstrt(w&0xf3));
 	andlw	VALMASK		;       !z; z = (nxtpair(&fsr0, &fsr1, 0)==0)) {
 	btfsc	STATUS,Z	;
 	bra	Lcpscnt		;   int8_t w;
+	pagesel	cpspair
 	call	cpspair		;   if (*fsr1 == 0) break; //done with row/column
 	andlw	0x0f		;   w = cpspair(fsr0, fsr1);//else try to combine
 	btfsc	STATUS,Z	;   if (w & 0x0f) { // 0=NA, 2=got 4, 3=got 8
 	bra	Lnopnt		;    uint8_t TMP8BIT = ((1<<w) & 0xff00) >> 8;
+	pagesel	pow2wf
 	call	pow2wf		;                  w =  (1<<w) & 0x00ff;
 ;	btfsc	WREG,1		;    if (w == 2)
 ;	bra	Lcpscnt		;     break; // already handled above
@@ -466,6 +494,7 @@ Lnopnt
 	else
 	 clrw			;
 	endif
+	pagesel	nxtpair
 	call	nxtpair		;
 	btfss	STATUS,Z	;
 	bra	Lnxtcec		;  }
@@ -482,8 +511,11 @@ apply
 	clrf	POINTSL		;uint8_t apply(uint4_t w) { // w=0000UDLR
 	clrf	POINTSH		; POINTS = 0; // 1 for tilt, >1 for collapse
 	movwf	TMPAPLY		;
+	pagesel	revdirs
 	call	revdirs		; w = revdirs(TMPAPLY = w);// iterate oppositely
+	pagesel	tilt
 	call	tilt		; tilt(w);
+	pagesel	collaps
 	call	collaps		; return collaps(w);
 	return			;} // apply()
 
@@ -491,6 +523,7 @@ turn
 	andlw	DIRMASK		;uint8_t turn(uint4_t w) { // w=0000UDLR
 	btfsc	STATUS,Z	; if (w & DIRMASK == 0)
 	retlw	0		;  return 0; // no move given
+	pagesel	apply
 	call	apply		;
 	btfsc	STATUS,Z	; if (apply(w) == 0)
 	retlw	0		;  return 0; // bad move: no slide/combine
@@ -501,7 +534,9 @@ turn
 	addwfc	SCOREH,f	;
 	clrw			;
 	addwfc	SCOREU,f	; *((uint24_t*)&SCOREL)+=*((uint16_t*)&POINTSL);
+	pagesel	empties
 	call	empties		;
+	pagesel	drop
 	call	drop		; drop(empties());
 	movlw	VALMASK		;
 	andwf	INDF0,w		;
