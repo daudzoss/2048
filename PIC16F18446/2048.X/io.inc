@@ -1,4 +1,4 @@
-;;; service routine is re-entrant shared by all consoles
+;;; interrupt service routine is re-entrant, shared by all consoles
 in_isr
 	movf	zOS_JOB,w	;void in_isr(void) {
 	movwf	BSR		; bsr = rtosjob;// to access char_io var et al
@@ -24,8 +24,8 @@ in_isr
 	movlw	NEIGHDN		;   COMMAND = 1<<2; break;
 	btfsc	STATUS,Z	;
 	bra	newchar		;
-	xorlw	'N'		;  case 'N':
-	movlw	-1		;   COMMAND = 255; break;
+	xorlw	'R'		;  case 'R':
+	movlw	-1		;   COMMAND = -1; break;
 	btfsc	STATUS,Z	;  default:
 	bra	newchar		;   COMMAND = 0; return;
 	clrf	COMMAND		; }
@@ -43,19 +43,38 @@ outgrid
 
 	
 gamejob	macro	p,rat,rts,hb,pin
+	local	gameadr,gamead2,gamead3,endgame,vars,optlo,opthi
 	pagesel	endgame
 	goto	endgame
-	local	gameadr,endgame,vars,optlo,opthi
 vars	set	0x20
 optlo	set	optadrl-vars
 opthi	set	optadrh-vars
-
 	
 gameadr
-	movf	COMMAND,w	; if (COMMAND == 0)
-	btfsc	STATUS,Z	;  return 0; // back to zOS_CON task
-	return			; else {
-	incfsz	COMMAND,
+	incfsz	COMMAND,w	;inline void gamejob(p,rat,rts,hb,pin) {
+	bra	gamead2		; if (COMMAND == -1) {
+	pagesel	newgame
+	call	newgame		;  newgame();
+#if 1
+	bra	gamead3		;
+#else
+	pagesel	outgrid
+	call	outgrid		;  outgrid();
+	clrf	COMMAND		;  COMMAND = 0;
+#endif
+gamead2
+	movf	COMMAND,w	; }
+	btfsc	STATUS,Z	; if (COMMAND == 0)
+	return			;  return 0; // back to zOS_CON task
+	
+else {
+
+gamead3
+	pagesel	outgrid
+	call	outgrid		;  outgrid();
+	clrf	COMMAND		;  COMMAND = 0;
+
+
 
 #if 0;copied from zOS_MAN()
 	xorlw	'G'		;
