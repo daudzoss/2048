@@ -36,10 +36,12 @@ monlast
 	zOS_RFI
 	
 ;;; re-entrant code to print grid outside of interrupt context here...
-outdig
+outcell
 	
+	addlw	low outtab	;
 	return
-	da	"   1"		;never exists
+celltab
+	da	"   0"		; 0 means empty cell
 	da	"   2"
 	da	"   4"
 	da	"   8"
