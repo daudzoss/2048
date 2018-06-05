@@ -37,7 +37,7 @@ monlast
 	
 ;;; re-entrant code to print grid outside of interrupt context here...
 celltab
-	da	"    "		;static char* celltab[] = {"    ", // empty cell
+	da	"    "		;static char* celltab[] = {"[  ]", // empty cell
 	da	"   2"		;                          "   2",
 	da	"   4"		;                          "   4",
 	da	"   8"		;                          "   8",
@@ -54,32 +54,48 @@ celltab
 	da	"16Ki"		;                          "16Ki", // 16384
 	da	"32Ki"		;                          "32Ki"};// 32768
 outcell
-	andlw	0x0f		;void outcell(uint4_t w) {
-	lslf	WREG		;
-	lslf	WREG		;
+	andlw	0xf0		;void outcell(uint4_t w) { // w holds table value
+	lsrf	WREG		;
+	lsrf	WREG		;
 	addlw	low outtab	;
 	movwf	FSR0L		;
 	movlw	high outtab	;
 	clrf	FSR0H		;
-	addwfc	FSR0H,f		; fsr0 = celltab[0x0f & w];
+	addwfc	FSR0H,f		; fsr0 = celltab[w >> 4]; // value stored high
 	movlw	5		; uint5_t i = 5;
 	movwf	PCLATH		; char w = ' '; // first print a leading space
-	movlw	' '		; do {
+	movlw	' '		; do { // turn interrupts off to call our SWI...
 cellchr
-	zOS_ARG	0		;  zOS_ARG(0, w); // print the character in WREG
-	zOS_SWI	-1		;  zOS_SWI(-1); // calls its own char output SWI
-	moviw	FSR0++		;  w = *fsr0++;
-	decfsz	PCLATH,f	;
-	bra	cellchr		; } while (--i > 0); // always loop 5x
+	zOS_ARG	0
+	zOS_SWI	-1
+	moviw	FSR0++		;  putchar(w); // which turns interrupts back on
+	decfsz	PCLATH,f	;  w = *fsr0++; // load next character into w
+	bra	cellchr		; } while (--i > 0); // always loop 5x: " cccc"
 	return			;}
 	
+;;; maybe just setfsrs() afterward? check the game code
+;;; need to figure out whether we were allowed to change FSR above and below
 outgrid	
-	
-
-
-	zOS_SWI	-1		;
-
-
+	iortblf	TBLADR,FSR1
+outnext
+	moviw	FSR1++		;void outgrid(void) { // clobbers fsr0, fsr1
+	pagesel	outcell
+	call	outcell		; uint8_t* fsr1;
+	movlw	0x03		; for (fsr1 = TBLADR; fsr1 < TBLADR+16; ) {
+	andwf	FSR1L,w		;  outcell(*fsr1++);
+	btfss	STATUS,Z	;  if ((fsr1-TBLADR) % 4 == 0) {
+	bra	outnext		;   putchar('\r');
+	movlw	'\r'		;   putchar('\n');
+	zOS_ARG	0
+	zOS_SWI	-1
+	movlw	'\n'		;  }
+	zOS_ARG	0
+	zOS_SWI	-1
+	movlw	0x0f		;
+	andwf	FSR1L,w		;
+	btfss	STATUS,Z	;
+	bra	outnext		; }
+	return			;}
 	
 gamejob	macro	p,rat,rts,hb,pin
 	local	gameadr,gamead2,gamead3,endgame,vars,optlo,opthi
@@ -91,10 +107,10 @@ opthi	set	optadrh-vars
 	
 gameadr
 	incfsz	COMMAND,w	;inline void gamejob(p,rat,rts,hb,pin) {
-	bra	gamead2		; if (COMMAND == -1) {
+	bra	gamead2		; if (COMMAND == -1)
 	pagesel	newgame
 	call	newgame		;  newgame();
-	bra	gamead3		; } else {
+	bra	gamead3		; else {
 gamead2
 	movf	COMMAND,w	;  if (COMMAND == 0)
 	btfsc	STATUS,Z	;   return; // back to zOS_CON task
@@ -103,10 +119,10 @@ gamead2
 	pagesel	turn
 	call	turn		; }
 gamead3
+	clrf	COMMAND		; COMMAND = 0; // unavailable to outgrid as temp
 	pagesel	outgrid
-	call	outgrid		; outgrid();
-	clrf	COMMAND		; COMMAND = 0;
-	return			;}
+	goto	outgrid		; outgrid();
+;	return			;}
 
 endgame
 	zOS_INP	p,rat,rts,hb,pin,in_isr

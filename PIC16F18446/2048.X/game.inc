@@ -117,7 +117,7 @@ fsrn set 0
 	 else
 	  iorlf	tbl,FSR#v(fsrn)L;  *fsrnum |= tbl & 0x00f0;
 	 endif
-	else			; else if (tbl == 0) // bottom of linear space
+	else			; else if (tbl == 0) // own heap in linear space
 	 iorlf	0x22,FSR#v(fsrn)H
  if 1
   swapbsr	FSR#v(fsrn)L	;  *fsrnum |= 0x2200 | (bsr<<4);
