@@ -36,33 +36,46 @@ monlast
 	zOS_RFI
 	
 ;;; re-entrant code to print grid outside of interrupt context here...
-outcell
-	
-	addlw	low outtab	;
-	return
 celltab
-	da	"   0"		; 0 means empty cell
-	da	"   2"
-	da	"   4"
-	da	"   8"
-	da	"  16"
-	da	"  32"
-	da	"  64"
-	da	" 128"
-	da	" 256"
-	da	" 512"
-	da	"1024"
-	da	"2048"
-	da	"4096"
-	da	"8192"
-	da	"16Ki"
-	da	"32Ki"
+	da	"    "		;static char* celltab[] = {"    ", // empty cell
+	da	"   2"		;                          "   2",
+	da	"   4"		;                          "   4",
+	da	"   8"		;                          "   8",
+	da	"  16"		;                          "  16",
+	da	"  32"		;                          "  32",
+	da	"  64"		;                          "  64",
+	da	" 128"		;                          " 128",
+	da	" 256"		;                          " 256",
+	da	" 512"		;                          " 512",
+	da	"1024"		;                          "1024",
+	da	"2048"		;                          "2048",
+	da	"4096"		;                          "4096",
+	da	"8192"		;                          "8192",
+	da	"16Ki"		;                          "16Ki", // 16384
+	da	"32Ki"		;                          "32Ki"};// 32768
+outcell
+	andlw	0x0f		;void outcell(uint4_t w) {
+	lslf	WREG		;
+	lslf	WREG		;
+	addlw	low outtab	;
+	movwf	FSR0L		;
+	movlw	high outtab	;
+	clrf	FSR0H		;
+	addwfc	FSR0H,f		; fsr0 = celltab[0x0f & w];
+	movlw	5		; uint5_t i = 5;
+	movwf	PCLATH		; char w = ' '; // first print a leading space
+	movlw	' '		; do {
+cellchr
+	zOS_ARG	0		;  zOS_ARG(0, w); // print the character in WREG
+	zOS_SWI	-1		;  zOS_SWI(-1); // calls its own char output SWI
+	moviw	FSR0++		;  w = *fsr0++;
+	decfsz	PCLATH,f	;
+	bra	cellchr		; } while (--i > 0); // always loop 5x
+	return			;}
 	
-outval
-
-	
-
 outgrid	
+	
+
 
 	zOS_SWI	-1		;
 
