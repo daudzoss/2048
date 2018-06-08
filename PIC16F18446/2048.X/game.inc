@@ -1,6 +1,3 @@
-	//FIXME: no pagesel's!!!!
-
-
  if 1
 LOCAL8	equ (0x28)		;// free for zOS_INP() or baremetal
 TBLSIZ	equ (0x10)		;extern const size_t TBLSIZ;// including code is
@@ -94,13 +91,13 @@ i += 1
 
 swapbsr	macro	file
 	clrf	file
-	btfsc	bsr,3
+	btfsc	BSR,3
 	bsf	file,7
-	btfsc	bsr,2
+	btfsc	BSR,2
 	bsf	file,6
-	btfsc	bsr,1
+	btfsc	BSR,1
 	bsf	file,5
-	btfsc	bsr,0
+	btfsc	BSR,0
 	bsf	file,4
 	endm
 
@@ -125,7 +122,7 @@ fsrn set 0
   swapf	BSR,w
   iorwf	FSR#v(fsrn)L,f
  endif
-endif	
+        endif	
 	endm			;} // iortblf()
 
 Lswitch
@@ -207,7 +204,7 @@ Lpick24
 	return			;} //drop()
 
 setfsrs
-	pagesel	setfsr1
+	pagesel	setfsrl
 	call	setfsrl		;uint4_t setfsrs(uint8_t** fsr0, uint8_t** fsr1,
 	clrf	FSR0H		;                uint8_t w) { // w=fsr1flag:cell
 	iortblf	TBLADR,FSR0	; w = setfsrl(fsr0, fsr1, w); // w=0000:fsr1flag

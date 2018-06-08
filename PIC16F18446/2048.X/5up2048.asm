@@ -1,13 +1,18 @@
 	processor 16f18446
 	include	p16f18446.inc
-/*
 #ifdef __DEBUG
-	__CONFIG _CONFIG1,_FOSC_INTOSC & _WDTE_OFF & _PWRTE_OFF & _MCLRE_ON & _CP_OFF & _CPD_OFF & _BOREN_ON & _CLKOUTEN_ON & _IESO_ON & _FCMEN_ON
+	__CONFIG _CONFIG1,_RSTOSC_HFINT32 & _CLKOUTEN_ON & _CSWEN_ON & _FCMEN_OFF
+	__CONFIG _CONFIG2,_MCLRE_ON & _PWRTS_OFF & _LPBOREN_OFF & _BOREN_ON & _BORV_LO & _ZCDDIS_OFF & _PPS1WAY_OFF & _STVREN_ON
+	__CONFIG _CONFIG3,_WDTCPS_WDTCPS_0 & _WDTE_OFF & _WDTCWS_WDTCWS_7 & _WDTCCS_SC
+	__CONFIG _CONFIG4,_BBEN_OFF & _SAFEN_OFF & _WRTAPP_OFF & _WRTB_OFF & _WRTC_OFF & _WRTD_OFF & _WRTSAF_OFF & _LVP_OFF
+	__CONFIG _CONFIG5,_CP_OFF
 #else
-	__CONFIG _CONFIG1,_FOSC_HS & _WDTE_ON & _PWRTE_OFF & _MCLRE_ON & _CP_OFF & _CPD_OFF & _BOREN_ON & _CLKOUTEN_OFF & _IESO_ON & _FCMEN_ON
+	__CONFIG _CONFIG1,_RSTOSC_HFINT32 & _CLKOUTEN_OFF & _CSWEN_ON & _FCMEN_OFF
+	__CONFIG _CONFIG2,_MCLRE_ON & _PWRTS_OFF & _LPBOREN_OFF & _BOREN_ON & _BORV_LO & _ZCDDIS_OFF & _PPS1WAY_OFF & _STVREN_ON	
+	__CONFIG _CONFIG3,_WDTCPS_WDTCPS_0 & _WDTE_ON & _WDTCWS_WDTCWS_7 & _WDTCCS_SC
+	__CONFIG _CONFIG4,_BBEN_OFF & _SAFEN_OFF & _WRTAPP_OFF & _WRTB_OFF & _WRTC_OFF & _WRTD_OFF & _WRTSAF_OFF & _LVP_OFF
+	__CONFIG _CONFIG5,_CP_OFF
 #endif
-	__CONFIG _CONFIG2,_WRT_ALL & _PLLEN_OFF & _STVREN_ON & _BORV_LO & _LVP_ON
-*/
 
 ;;; uncomment to reduce zOS footprint by 100 words (at cost of zOS_FRK/EXE/FND):
 ;zOS_MIN	equ	1
@@ -26,21 +31,19 @@ STDOUT5	equ	zOS_SI7	; SWI for job 5
 	pagesel	main
 	goto	main
 
-	include	io.inc		; defines in_isr() and out_brd()
 
 ;;; 
+	include	game.inc	;// defines newgame() and turn()
+	include	io.inc		;// defines in_isr() and outgrid()
 
+	clrw			;void main(void) {
 main
 #ifdef __DEBUG
 	banksel	OSCCON
 	bsf	OSCCON,IRCF3	; // change from 0.5MHz default to 16MHz
 	movlb	0		;
 #endif
-	
-	include	game.inc
-	
-	clrw			;void main(void) {
-main
+
 #if 0
 	banksel	TRISA
 	bsf	TRISA,RA7	; TRISA = 0xb0;
@@ -85,21 +88,29 @@ RTSFLG1	equ	PIR3		; has the user LED on pin RA2
 #ifdef TX2IF
 RTSFLG2	equ	PIR3
 #else
+HBPORT2	equ	0
+HBPIN2	equ	0
 RTSFLG2	equ	0		; only on PIC16F18455/56 et al
 #endif
 #ifdef TX3IF
 RTSFLG	equ	?
 #else
+HBPORT3	equ	0
+HBPIN3	equ	0
 RTSFLG3	equ	0		; only on PIC18 for now :'(
 #endif
 #ifdef TX4IF
 RTSFLG	equ	?
 #else
+HBPORT4	equ	0
+HBPIN4	equ	0
 RTSFLG4	equ	0		; only on PIC18 for now :'(
 #endif
 #ifdef TX5IF
 RTSFLG	equ	?
 #else
+HBPORT5	equ	0
+HBPIN5	equ	0
 RTSFLG5	equ	0		; only on PIC18 for now :'(
 #endif
 
@@ -114,7 +125,7 @@ i = 0
 	while	i < 5
 i += 1
 	if RTSFLG#v(i)
-#ifdef HBPORT#v(i)
+#if HBPORT#v(i)
 poffset = HBPORT#v(i) - LATA
 anselec	= ANSELA + poffset
 tristat = TRISA + poffset

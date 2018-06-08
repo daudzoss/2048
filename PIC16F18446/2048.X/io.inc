@@ -37,7 +37,7 @@ monlast
 	
 ;;; re-entrant code to print grid outside of interrupt context here...
 celltab
-	da	"    "		;static char* celltab[] = {"[  ]", // empty cell
+	da	"[  ]"		;static char* celltab[] = {"[  ]", // empty cell
 	da	"   2"		;                          "   2",
 	da	"   4"		;                          "   4",
 	da	"   8"		;                          "   8",
@@ -54,12 +54,12 @@ celltab
 	da	"16Ki"		;                          "16Ki", // 16384
 	da	"32Ki"		;                          "32Ki"};// 32768
 outcell
-	andlw	0xf0		;void outcell(uint4_t w) { // w holds table value
+	andlw	0xf0		;void outcell(uint8_t w) { // w holds table vals
 	lsrf	WREG		;
 	lsrf	WREG		;
-	addlw	low outtab	;
+	addlw	low celltab	;
 	movwf	FSR0L		;
-	movlw	high outtab	;
+	movlw	high celltab	;
 	clrf	FSR0H		;
 	addwfc	FSR0H,f		; fsr0 = celltab[w >> 4]; // value stored high
 	movlw	5		; uint5_t i = 5;
@@ -102,8 +102,8 @@ gamejob	macro	p,rat,rts,hb,pin
 	pagesel	endgame
 	goto	endgame
 vars	set	0x20
-optlo	set	optadrl-vars
-opthi	set	optadrh-vars
+optlo	set	0x28-vars
+opthi	set	0x28-vars
 	
 gameadr
 	incfsz	COMMAND,w	;inline void gamejob(p,rat,rts,hb,pin) {
