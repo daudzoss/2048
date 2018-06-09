@@ -1,5 +1,6 @@
 	processor 16f18446
 	include	p16f18446.inc
+
 #ifdef __DEBUG
 	__CONFIG _CONFIG1,_RSTOSC_HFINT32 & _CLKOUTEN_ON & _CSWEN_ON & _FCMEN_OFF
 	__CONFIG _CONFIG2,_MCLRE_ON & _PWRTS_OFF & _LPBOREN_OFF & _BOREN_ON & _BORV_LO & _ZCDDIS_OFF & _PPS1WAY_OFF & _STVREN_ON
@@ -38,13 +39,13 @@ STDOUT5	equ	zOS_SI7	; SWI for job 5
 
 	clrw			;void main(void) {
 main
+#if 0
 #ifdef __DEBUG
 	banksel	OSCCON
 	bsf	OSCCON,IRCF3	; // change from 0.5MHz default to 16MHz
 	movlb	0		;
 #endif
 
-#if 0
 	banksel	TRISA
 	bsf	TRISA,RA7	; TRISA = 0xb0;
 	bcf	TRISA,RA6	; // xtal <--------startup error? race cond'n?
