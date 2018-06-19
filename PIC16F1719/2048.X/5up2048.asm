@@ -53,7 +53,7 @@ main
 
         banksel RC2PPS
         movlw   0x24
-        movwf   RC6PPS          ;    RC6PPSbits.RC6PPS = 0x24;   //RC6->EUSART:TX;
+        movwf   RC6PPS          ;    RC6PPSbits.RC6PPS = 0x24;  //RC6->EUSART:TX;
 
         banksel PPSLOCK
         movlw   0x55
@@ -72,7 +72,7 @@ CLKRAT1	equ	.032000000/.000009600
 	
 	variable i,p,anselec,tristat
 i = 0
-	while	i < 2
+	while	i < 1
 i += 1
 
 #ifdef TX1IF
