@@ -37,29 +37,29 @@ monlast
 	
 ;;; re-entrant code to print grid outside of interrupt context here...
 celltab
-	da	"    "		;static char* celltab[] = {"[  ]", // empty cell
-	da	"   2"		;                          "   2",
-	da	"   4"		;                          "   4",
-	da	"   8"		;                          "   8",
-	da	"  16"		;                          "  16",
-	da	"  32"		;                          "  32",
-	da	"  64"		;                          "  64",
-	da	" 128"		;                          " 128",
-	da	" 256"		;                          " 256",
-	da	" 512"		;                          " 512",
-	da	"1024"		;                          "1024",
-	da	"2048"		;                          "2048",
-	da	"4096"		;                          "4096",
-	da	"8192"		;                          "8192",
-	da	"16Ki"		;                          "16Ki", // 16384
-	da	"32Ki"		;                          "32Ki"};// 32768
+	dt	"[  ]"		;static char* celltab[] = {"[  ]", // empty cell
+	dt	"   2"		;                          "   2",
+	dt	"   4"		;                          "   4",
+	dt	"   8"		;                          "   8",
+	dt	"  16"		;                          "  16",
+	dt	"  32"		;                          "  32",
+	dt	"  64"		;                          "  64",
+	dt	" 128"		;                          " 128",
+	dt	" 256"		;                          " 256",
+	dt	" 512"		;                          " 512",
+	dt	"1024"		;                          "1024",
+	dt	"2048"		;                          "2048",
+	dt	"4096"		;                          "4096",
+	dt	"8192"		;                          "8192",
+	dt	"16Ki"		;                          "16Ki", // 16384
+	dt	"32Ki"		;                          "32Ki"};// 32768
 outcell
-	andlw	0xf0		;void outcell(uint4_t w) { // w holds table value
+	andlw	0xf0		;void outcell(uint8_t w) { // w holds table vals
 	lsrf	WREG		;
 	lsrf	WREG		;
-	addlw	low outtab	;
+	addlw	low celltab	;
 	movwf	FSR0L		;
-	movlw	high outtab	;
+	movlw	high celltab	;
 	clrf	FSR0H		;
 	addwfc	FSR0H,f		; fsr0 = celltab[w >> 4]; // value stored high
 	movlw	5		; uint5_t i = 5;
@@ -102,8 +102,8 @@ gamejob	macro	p,rat,rts,hb,pin
 	pagesel	endgame
 	goto	endgame
 vars	set	0x20
-optlo	set	optadrl-vars
-opthi	set	optadrh-vars
+optlo	set	0x28-vars
+opthi	set	0x28-vars
 	
 gameadr
 	incfsz	COMMAND,w	;inline void gamejob(p,rat,rts,hb,pin) {
