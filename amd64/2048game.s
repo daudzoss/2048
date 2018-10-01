@@ -62,7 +62,7 @@ print4x4:
 	pop	rbp		;
 	ret			;}
 
-%if 1
+%if 0
 %macro	bextr	3
 	mov	%1,%2
 	shr	%1,%3&0x3f
@@ -79,8 +79,7 @@ print4x4:
 empties:
 	push	rbp		;uint64_t empties(uint64_t rdi) {
 	mov	rbp,rsp		; uint64_t a = 0x0000000000000000;
-	xor	rax,rax		;
-	xor	eax,eax		; for (i = 0; i < 0x10; i++) {
+	xor	rax,rax		; for (i = 0; i < 0x10; i++) {
 %assign f 0x400
 %rep 16
 	bextr	rsi,rdi,f	;  // determine whether the cell is clear (1)
@@ -88,7 +87,8 @@ empties:
 	add	cl,al		;
 	xor	dl,dl		;  // cl == 1+al if clear, cl == al if not clear
 	cmp	cl,al		;  uint8_t d = (rdi & (0xf << (4*i))) ? 0 :0xf0;
-	cmovne	dx,0x00f0	;
+	mov	si,0x00f0	;
+	cmovne	dx,si		;
 	or	dl,cl		;  // shift in either 0 or f, append new count
 	shl	rax,4		;  a = (a << 4) | (c ? 0xf0 : 0) | ((a+c)&0xf);
 	mov	al,dl		; } // will remain all zero if truly full
