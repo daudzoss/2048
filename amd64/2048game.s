@@ -19,11 +19,11 @@ values:
 	db	"[2^14] ",0	;                  "[2^14] ",
 	db	"[2^15] ",0	;                  "[2^15] "};
 newrow:	
-	db	"\n"		;char newrow = '\n';
+	db	10,0		;char newrow = '\n';
 	
 	section	.text
 	global	print4x4
-	extern	putchar,puts
+	extern	printf
 print4x4:
 	push	rbp		;void print4x4(uint64_t rdi) {
 	mov	rbp,rsp		;
@@ -46,9 +46,9 @@ print4x4:
 	xor	rax,rax		;  for (int j = 0; j < 4; j++) {
 	mov	al,bl		;
 	lea	rdi,[rel values];
-	lea	rdi,[rdi+4*rax]	;
+	lea	rdi,[rdi+8*rax]	;
 	mov	r12,rsi		;
-	call	puts		;   puts(values[rsi[i*4+j]]);
+	call	printf		;   puts(values[rsi[i*4+j]]);
 	mov	rsi,r12		;
 	mov	cl,0xff		;
 	shrd	ebx,ecx,8	;
@@ -57,7 +57,7 @@ print4x4:
 	jnz	.L2print4x4	;  }
 	lea	rdi,[rel newrow];
 	mov	r12,rsi		;
-	call	putchar		;
+	call	printf		;
 	mov	rsi,r12		;
 	lea	rsi,[rsi+4]	;
 	cmp	rsi,rbp		;
