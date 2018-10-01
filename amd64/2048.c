@@ -10,5 +10,5 @@ void main(void) {
   uint64_t lastempty = 0x123456789abcdef0;
   uint64_t noneempty = 0x1111222233334444;
 
-  print4x4(gridempty);
+  print4x4(lastempty);
 }

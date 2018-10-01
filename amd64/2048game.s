@@ -55,8 +55,8 @@ print4x4:
 	mov	eax,ebx		;
 	inc	eax		;
 	jnz	.L2print4x4	;  }
-	mov	r12,rsi		;
 	lea	rdi,[rel newrow];
+	mov	r12,rsi		;
 	call	putchar		;
 	mov	rsi,r12		;
 	lea	rsi,[rsi+4]	;
