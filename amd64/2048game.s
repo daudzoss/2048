@@ -1,7 +1,7 @@
 nybmask	equ	0x0f0f0f0f0f0f0f0f
 	section	.data
-strings:
-	db	"       ",0	;char strings[] = {"       ",
+values:
+	db	"       ",0	;char values[] = {"       ",
 	db	"[   1] ",0	;                  "[   1] ",
 	db	"[   2] ",0	;                  "[   2] ",
 	db	"[   4] ",0	;                  "[   4] ",
@@ -18,10 +18,12 @@ strings:
 	db	"[2^13] ",0	;                  "[2^13] ",
 	db	"[2^14] ",0	;                  "[2^14] ",
 	db	"[2^15] ",0	;                  "[2^15] "};
-
+newrow:	
+	db	"\n"		;char newrow = '\n';
+	
 	section	.text
 	global	print4x4
-	extern	puts
+	extern	putchar,puts
 print4x4:
 	push	rbp		;void print4x4(uint64_t rdi) {
 	mov	rbp,rsp		;
@@ -43,16 +45,20 @@ print4x4:
 .L2print4x4:
 	xor	rax,rax		;  for (int j = 0; j < 4; j++) {
 	mov	al,bl		;
-	mov	rdi,strings	;
+	lea	rdi,[rel values];
 	lea	rdi,[rdi+4*rax]	;
 	mov	r12,rsi		;
-	call	puts		;   puts(strings[rsi[i*4+j]]);
+	call	puts		;   puts(values[rsi[i*4+j]]);
 	mov	rsi,r12		;
 	mov	cl,0xff		;
 	shrd	ebx,ecx,8	;
 	mov	eax,ebx		;
 	inc	eax		;
 	jnz	.L2print4x4	;  }
+	mov	r12,rsi		;
+	lea	rdi,[rel newrow];
+	call	putchar		;
+	mov	rsi,r12		;
 	lea	rsi,[rsi+4]	;
 	cmp	rsi,rbp		;
 	jne	.L1print4x4	; }
@@ -97,3 +103,5 @@ empties:
 	pop	rbp		; return a; // empty nybbles mask:count of empty
 	ret			;} // or 0xfffffffffffffff0 if all empty (error)
 				;  // or 0xffffffffffffffff if only cell 0 empty
+				;  // or 0x0000000000000000 if grid is full
+	
