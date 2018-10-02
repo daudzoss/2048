@@ -1,4 +1,10 @@
 nybmask	equ	0x0f0f0f0f0f0f0f0f
+	
+tilt_l	equ	0x02
+tilt_r	equ	0xfe
+tilt_d	equ	0x08
+tilt_u	equ	0xf8
+	
 	section	.data
 values:
 	db	"       ",0	;char values[] = {"       ",
@@ -47,7 +53,7 @@ print4x4:
 	lea	rdi,[rel values];
 	lea	rdi,[rdi+8*rax]	;
 	mov	r12,rsi		;
-	call	printf		;   puts(values[rsi[i*4+j]]);
+	call	printf		;   printf(values[rsi[i*4+j]]);
 	mov	rsi,r12		;
 	mov	cl,0xff		;
 	shrd	ebx,ecx,8	;
@@ -56,7 +62,7 @@ print4x4:
 	jnz	.L2print4x4	;  }
 	lea	rdi,[rel newrow];
 	mov	r12,rsi		;
-	call	printf		;
+	call	printf		;  printf("\n");
 	mov	rsi,r12		;
 	lea	rsi,[rsi+4]	;
 	cmp	rsi,rbp		;
@@ -67,9 +73,9 @@ print4x4:
 	pop	rbp		;
 	ret			;}
 
-%macro	_cmovne	2
-	jne	%%equal
-	mov	%1,%2
+%macro	cmov	3
+	j%1	%%equal
+	mov	%2,%3
 %%equal:	
 %endmacro
 	
@@ -100,8 +106,68 @@ empties:
 	mov	al,dl		; } // will remain all zero if truly full
 %assign f f+4
 %endrep
+	mov	rsp,rbp		;
 	pop	rbp		; return a; // empty nybbles mask:count of empty
 	ret			;} // or 0xfffffffffffffff0 if all empty (error)
 				;  // or 0xffffffffffffffff if only cell 0 full
 				;  // or 0x0000000000000000 if grid is full
 	
+
+
+;;; who else would call empties()? for one, a test for valid moves
+;;; while (empties())
+
+
+	push	rbp		;uint64_t move(uint8_t rdi, uint64_t rsi) {
+	mov	rbp,rsp		;
+
+
+
+	mov	rsp,rbp		;
+	pop	rbp		;
+	ret			;}
+	
+
+	global	nomoves
+nomoves:
+	push	rbp		;uint64_t anymove(uint8_t rdi) {
+	mov	rbp,rsp		;
+	lea	rsp,[rsp-16]	; uint64_t rax;
+
+	mov	[rsp+0],rbx	;
+;	mov	[rsp+8],r12	;
+	mov	rbx,rdi		;
+	
+	call	empties		;
+	or	rax,0		; if ((rax = empties(rdi)) != 0)  
+	jnz	.Lfound		;  return rax; // board has empty cells
+
+	mov	edi,tilt_l ;
+	mov	rsi,rbx		;
+	call	move		;
+	xor	rax,rbx		; if ((rax = move(tilt_l, rdi) ^ rdi) != 0)
+	jne	.Lfound		;  return rax; // tilting left results in change
+	
+	mov	edi,tilt_r	;
+	mov	rsi,rbx		;
+	call	move		;
+	xor	rax,rbx		; if ((rax = move(tilt_r, rdi) ^ rdi) != 0)
+	jne	.Lfound		;  return rax;// tilting right results in change
+	
+	mov	edi,tilt_d	;
+	mov	rsi,rbx		;
+	call	move		;
+	xor	rax,rbx		; if ((rax = move(tilt_d, rdi) ^ rdi) != 0)
+	jne	.Lfound		;  return rax; // tilting down results in change
+	
+	mov	edi,tilt_u	;
+	mov	rsi,rbx		;
+	call	move		;
+	xor	rax,rbx		; if ((rax = move(tilt_u, rdi) ^ rdi) != 0)
+
+.Lfound
+;	mov	r12,[rsp+8]	;
+	mov	rbx,[rsp+0]	;  return rax; // tilting up results in change
+	mov	rsp,rbp		;
+	pop	rbp		; return 0;
+	ret			;}
