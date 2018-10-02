@@ -74,7 +74,6 @@ print4x4:
 %endmacro
 	
 %macro	_bextr	3
-	cpuid
 	mov	%1,%2
 	shr	%1,%3&0x3f
 	and	%1,(1<<(%3>>8))-1
@@ -101,6 +100,6 @@ empties:
 %endrep
 	pop	rbp		; return a; // empty nybbles mask:count of empty
 	ret			;} // or 0xfffffffffffffff0 if all empty (error)
-				;  // or 0xffffffffffffffff if only cell 0 empty
+				;  // or 0xffffffffffffffff if only cell 0 full
 				;  // or 0x0000000000000000 if grid is full
 	

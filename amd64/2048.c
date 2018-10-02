@@ -10,9 +10,10 @@ uint64_t print_em(uint64_t grid){
   uint64_t mask = 0x000000000000000f;
   int i, count;
 
-  printf("%ld empty nybbles", count = em & mask);
+  count = em & mask;
+  printf("%ld empty nybbles", count ? count : (em ? 16 : 0));
 
-  for (i = 0; i < 16; i++) {
+  for (i = 0; i < 15; i++) {
     int empty;
 
     if (empty = ((em >> (4*(i+1))) & mask) ? 1 : 0)
@@ -31,10 +32,10 @@ void main(void) {
   uint64_t lastempty = 0x123456789abcdef0;
   uint64_t noneempty = 0x1111222233334444;
 
-  print4x4(gridempty);
-  print_em(gridempty);
   print4x4(lastempty);
   print_em(lastempty);
+  print4x4(gridempty);
+  print_em(gridempty);
   print4x4(noneempty);
   print_em(noneempty);
 }
