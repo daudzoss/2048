@@ -88,9 +88,11 @@ empties:
 %rep 16
 	_bextr	rsi,rdi,f	;  // determine whether the cell is clear (1)
 	setz	cl		;  uint8_t c = (rdi & (0xf << (4*i))) ? 0 : 1;
-	add	cl,al		;
-	xor	dl,dl		;  // cl == 1+al if clear, cl == al if not clear
-	cmp	cl,al		;  uint8_t d = (rdi & (0xf << (4*i))) ? 0 :0xf0;
+	mov	dl,al		;
+	and	dl,0x0f		;  // cl == 1+al if clear, cl == al if not clear
+	add	cl,dl		;  uint8_t d = (rdi & (0xf << (4*i))) ? 0 :0xf0;
+	cmp	cl,dl		;
+	mov	dl,0		;
 	mov	si,0x00f0	;
 	cmovne	dx,si		;
 	or	dl,cl		;  // shift in either 0 or f, append new count
