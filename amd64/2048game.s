@@ -55,9 +55,8 @@ print4x4:
 	xor	rax,rax		;  for (int j = 0; j < 4; j++) {
 	mov	al,bl		;
 	mov	r12,rsi		;
-;	mov	rdi,[rel strout];
- lea	rdi,[rel values];	lea	rsi,[rel values];
- lea	rdi,[rdi+8*rax]	;	lea	rsi,[rsi+8*rax]	;
+	lea	rdi,[rel values];
+	lea	rdi,[rdi+8*rax]	;
 	mov	al,0		;
 	call	printf		;   printf("%s", values[rsi[i*4+j]]);
 	mov	rsi,r12		;
@@ -67,8 +66,7 @@ print4x4:
 	inc	eax		;
 	jnz	.L2print4x4	;  }
 	mov	r12,rsi		;
-;	mov	rdi,[rel cout]	;
- lea	rdi,[rel newrow];	lea	rsi,[rel newrow];
+	lea	rdi,[rel newrow];
 	mov	al,0		;
 	call	printf		;  printf("%c", '\n');
 	mov	rsi,r12		;
@@ -130,11 +128,37 @@ empties:
 move:	
 	push	rbp		;uint64_t move(uint8_t rdi, uint64_t rsi) {
 	mov	rbp,rsp		;
+	
+	mov	rax,nybmask	;
+	mov	rcx,rsi		;
+	and	rcx,rax		; uint64_t rcx = rsi & 0x0f0f0f0f0f0f0f0f;
+	mov	rdx,rsi		;
+	shr	rdx,4		;
+	and	rdx,rax		; uint64_t rdx = rsi & 0xf0f0f0f0f0f0f0f0 >> 4;
+	mov	rax,rsi		; uint64_t rax = rsi; // default return value
+	
+	cmp	rsi,tilt_l	; switch (rdi) {
+	jne	.Lr		;  case tilt_l:
+	mov	rax,rcx		;
+	shr	rax,32		;
+	xor	rax,rdx		;
+	and	rax,0x0f000000	; <<----convert to loop FIXME
+	
+.Lr
+	cmp	rsi,tilt_r	;
+	jne	.Ld		;  case tilt_r:
 
- mov rax,rdi
+.Ld
+	cmp	rsi,tilt_d	;
+	jne	.Lu		;  case tilt_d:
+	
+.Lu
+	cmp	rsi,tilt_u	;
+	jne	.Lbad		;  case tilt_u:
 
-	mov	rsp,rbp		;
-	pop	rbp		;
+.Lbad
+	mov	rsp,rbp		; }
+	pop	rbp		; return rax;
 	ret			;}
 	
 
