@@ -79,7 +79,7 @@ print4x4:
 %%equal:	
 %endmacro
 	
-%macro	_bextr	3
+%macro	bextr	3
 	mov	%1,%2
 	shr	%1,%3&0x3f
 	and	%1,(1<<(%3>>8))-1
@@ -92,7 +92,7 @@ empties:
 	xor	rax,rax		; for (i = 0; i < 0x10; i++) {
 %assign f 0x400
 %rep 16
-	_bextr	rsi,rdi,f	;  // determine whether the cell is clear (1)
+	bextr	rsi,rdi,f	;  // determine whether the cell is clear (1)
 	setz	cl		;  uint8_t c = (rdi & (0xf << (4*i))) ? 0 : 1;
 	mov	dl,al		;
 	and	dl,0x0f		;  // cl == 1+al if clear, cl == al if not clear
@@ -128,8 +128,8 @@ empties:
 	ret			;}
 	
 
-	global	nomoves
-nomoves:
+	global	anymove
+anymove:
 	push	rbp		;uint64_t anymove(uint8_t rdi) {
 	mov	rbp,rsp		;
 	lea	rsp,[rsp-16]	; uint64_t rax;
@@ -171,3 +171,4 @@ nomoves:
 	mov	rsp,rbp		;
 	pop	rbp		; return 0;
 	ret			;}
+
