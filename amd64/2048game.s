@@ -24,7 +24,11 @@ values:
 	db	"[2^14] ",0	;                  "[2^14] ",
 	db	"[2^15] ",0	;                  "[2^15] "};
 newrow:	
-	db	10,0		;char newrow[] = "\n";
+	db	10,0		;char newrow[] = {'\n', '\0'};
+cout:
+	db	"%c",0
+strout:
+	db	"%s",0
 	
 	section	.text
 	global	print4x4
@@ -50,19 +54,23 @@ print4x4:
 .L2print4x4:
 	xor	rax,rax		;  for (int j = 0; j < 4; j++) {
 	mov	al,bl		;
-	lea	rdi,[rel values];
-	lea	rdi,[rdi+8*rax]	;
 	mov	r12,rsi		;
-	call	printf		;   printf(values[rsi[i*4+j]]);
+;	mov	rdi,[rel strout];
+ lea	rdi,[rel values];	lea	rsi,[rel values];
+ lea	rdi,[rdi+8*rax]	;	lea	rsi,[rsi+8*rax]	;
+	mov	al,0		;
+	call	printf		;   printf("%s", values[rsi[i*4+j]]);
 	mov	rsi,r12		;
 	mov	cl,0xff		;
 	shrd	ebx,ecx,8	;
 	mov	eax,ebx		;
 	inc	eax		;
 	jnz	.L2print4x4	;  }
-	lea	rdi,[rel newrow];
 	mov	r12,rsi		;
-	call	printf		;  printf("\n");
+;	mov	rdi,[rel cout]	;
+ lea	rdi,[rel newrow];	lea	rsi,[rel newrow];
+	mov	al,0		;
+	call	printf		;  printf("%c", '\n');
 	mov	rsi,r12		;
 	lea	rsi,[rsi+4]	;
 	cmp	rsi,rbp		;
@@ -78,7 +86,7 @@ print4x4:
 	mov	%2,%3
 %%equal:	
 %endmacro
-	
+
 %macro	bextr	3
 	mov	%1,%2
 	shr	%1,%3&0x3f
