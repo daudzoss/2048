@@ -38,10 +38,10 @@ print4x4:
 	mov	[rsp+0],rbx	;     |(rdi&(0xff<<40)>>40)|(rdi&(0xff<<32)>>32)
 	mov	rcx,nybmask	;     |(rdi&(0xff<<24)>>24)|(rdi&(0x16<<16)>>56)
 	bswap	rdi		;     |(rdi&(0xff<<8)>>8)  |(rdi&(0xff<<0)>>0);
-	mov	rax,rdi		; // put pre-located tiles into rows 0,1
+	mov	rax,rdi		; // put pre-located tiles into rows 0,1? FIXME
 	and	rax,rcx		; for (int i = 0; i < 8; i++)
 	mov	[rsi+8],rax	;  rsi[i+8] = (rdi >> (i*8)) & 0x0f;
-	shr	rdi,4		; // put interleaved tiles into rows 2,3
+	shr	rdi,4		; // put interleaved tiles into rows 2,3? FIXME
 	and	rdi,rcx		; for (int i = 0; i < 8; i++)
 	mov	[rsi+0],rdi	;  rsi[i+0] = ((rdi>>4) >> (i*8)) & 0x0f;
 
@@ -118,10 +118,12 @@ empties:
 ;;; while (empties())
 
 
+	global	move
+move:	
 	push	rbp		;uint64_t move(uint8_t rdi, uint64_t rsi) {
 	mov	rbp,rsp		;
 
-
+ mov rax,rdi
 
 	mov	rsp,rbp		;
 	pop	rbp		;
