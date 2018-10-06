@@ -1,3 +1,5 @@
+%include "macrodef.s"
+
 nybmask	equ	0x0f0f0f0f0f0f0f0f
 	
 tilt_l	equ	0x02
@@ -38,14 +40,14 @@ print4x4:
 	mov	rbp,rsp		;
 	lea	rsp,[rsp-32]	; auto
 	lea	rsi,[rsp+16]	;  uint8_t rsi[16];
-	mov	[rsp+8],r12	; rdi =(rdi&(0xff<<56)>>56)|(rdi&(0xff<<48)>>48)
-	mov	[rsp+0],rbx	;     |(rdi&(0xff<<40)>>40)|(rdi&(0xff<<32)>>32)
-	mov	rcx,nybmask	;     |(rdi&(0xff<<24)>>24)|(rdi&(0x16<<16)>>56)
-	bswap	rdi		;     |(rdi&(0xff<<8)>>8)  |(rdi&(0xff<<0)>>0);
-	mov	rax,rdi		; // put pre-located tiles into rows 0,1? FIXME
+	mov	[rsp+8],r12	; rdi =(rdi&(0xff<<56)>>56)|(rdi&(0xff<<48)>>40)
+	mov	[rsp+0],rbx	;      |(rdi&(0xff<<40)>>24)|(rdi&(0xff<<32)>>8)
+	mov	rcx,nybmask	;      |(rdi&(0xff<<24)<<8)|(rdi&(0xff<<16)<<24)
+	bswap	rdi		;      |(rdi&(0xff<<8)<<40)|(rdi&(0xff<<0)<<56);
+	mov	rax,rdi		; // put pre-located tiles into rows 2,3
 	and	rax,rcx		; for (int i = 0; i < 8; i++)
 	mov	[rsi+8],rax	;  rsi[i+8] = (rdi >> (i*8)) & 0x0f;
-	shr	rdi,4		; // put interleaved tiles into rows 2,3? FIXME
+	shr	rdi,4		; // put interleaved tiles into rows 0,1
 	and	rdi,rcx		; for (int i = 0; i < 8; i++)
 	mov	[rsi+0],rdi	;  rsi[i+0] = ((rdi>>4) >> (i*8)) & 0x0f;
 
@@ -79,89 +81,57 @@ print4x4:
 	pop	rbp		;
 	ret			;}
 
-%macro	cmov	3
-	j%1	%%equal
-	mov	%2,%3
-%%equal:	
-%endmacro
-
-%macro	bextr	3
-	mov	%1,%2
-	shr	%1,%3&0x3f
-	and	%1,(1<<(%3>>8))-1
-%endmacro
-	
-	global	empties
-empties:
-	push	rbp		;uint64_t empties(uint64_t rdi) {
-	mov	rbp,rsp		; uint64_t a = 0x0000000000000000;
-	xor	rax,rax		; for (i = 0; i < 0x10; i++) {
-%assign f 0x400
-%rep 16
-	bextr	rsi,rdi,f	;  // determine whether the cell is clear (1)
-	setz	cl		;  uint8_t c = (rdi & (0xf << (4*i))) ? 0 : 1;
-	mov	dl,al		;
-	and	dl,0x0f		;  // cl == 1+al if clear, cl == al if not clear
-	add	cl,dl		;  uint8_t d = (rdi & (0xf << (4*i))) ? 0 :0xf0;
-	cmp	cl,dl		;
-	mov	dl,0		;
-	mov	si,0x00f0	;
-	cmovne	dx,si		;
-	or	dl,cl		;  // shift in either 0 or f, append new count
-	shl	rax,4		;  a = (a << 4) | (c ? 0xf0 : 0) | ((a+c)&0xf);
-	mov	al,dl		; } // will remain all zero if truly full
-%assign f f+4
-%endrep
-	mov	rsp,rbp		;
-	pop	rbp		; return a; // empty nybbles mask:count of empty
-	ret			;} // or 0xfffffffffffffff0 if all empty (error)
-				;  // or 0xffffffffffffffff if only cell 0 full
-				;  // or 0x0000000000000000 if grid is full
-	
-
-
-;;; who else would call empties()? for one, a test for valid moves
-;;; while (empties())
-
-
 	global	move
 move:	
 	push	rbp		;uint64_t move(uint8_t rdi, uint64_t rsi) {
 	mov	rbp,rsp		;
+	lea	rsp,[rsp-16]	; auto rsp[2]; // rcx and rdx backup
 	
 	mov	rax,nybmask	;
 	mov	rcx,rsi		;
-	and	rcx,rax		; uint64_t rcx = rsi & 0x0f0f0f0f0f0f0f0f;
-	mov	rdx,rsi		;
-	shr	rdx,4		;
-	and	rdx,rax		; uint64_t rdx = rsi & 0xf0f0f0f0f0f0f0f0 >> 4;
+	shr	rdx,4		; // upper two rows:
+	and	rcx,rax		; uint64_t rcx = (rsi & 0xf0f0f0f0f0f0f0f0)>>4;
+	mov	[rsp+0],rcx	; rsp[0] = rcx;
+	mov	rdx,rsi		; // lower two rows:
+	and	rdx,rax		; uint64_t rdx = (rsi & 0x0f0f0f0f0f0f0f0f);
+	mov	[rsp+8],rdx	; rsp[1] = rdx;
+
 	mov	rax,rsi		; uint64_t rax = rsi; // default return value
+	cmp	rdi,tilt_l	; switch (rdi) {
+	jne	.Lr		;  case tilt_l: // first bias left
 	
-	cmp	rsi,tilt_l	; switch (rdi) {
-	jne	.Lr		;  case tilt_l:
-	mov	rax,rcx		;
+	mov	rax,0xf<<58	;
+;	mov	rdx,
+;	and	rax,rcx		;
+	
+	
+;	cmov
+;	xor
+
+;	mov	rax,0x0f<<
 	shr	rax,32		;
 	xor	rax,rdx		;
-	and	rax,0x0f000000	; <<----convert to loop FIXME
+	and	rax,0x0f000000	;
 	
-.Lr
-	cmp	rsi,tilt_r	;
+.Lr:
+	cmp	rdi,tilt_r	;
 	jne	.Ld		;  case tilt_r:
 
-.Ld
-	cmp	rsi,tilt_d	;
+.Ld:
+	cmp	rdi,tilt_d	;
 	jne	.Lu		;  case tilt_d:
 	
-.Lu
-	cmp	rsi,tilt_u	;
+.Lu:
+	cmp	rdi,tilt_u	;
 	jne	.Lbad		;  case tilt_u:
 
-.Lbad
+.Lbad:
 	mov	rsp,rbp		; }
 	pop	rbp		; return rax;
 	ret			;}
 	
 
+	extern	empties
 	global	anymove
 anymove:
 	push	rbp		;uint64_t anymove(uint8_t rdi) {
@@ -173,8 +143,8 @@ anymove:
 	mov	rbx,rdi		;
 	
 	call	empties		;
-	or	rax,0		; if ((rax = empties(rdi)) != 0)  
-	jnz	.Lfound		;  return rax; // board has empty cells
+	or	rax,0		; if ((rax = empties(rdi)) == 0)  
+	jnz	.Lfound		;  return rax; // board has no empty cells
 
 	mov	edi,tilt_l ;
 	mov	rsi,rbx		;
@@ -199,7 +169,7 @@ anymove:
 	call	move		;
 	xor	rax,rbx		; if ((rax = move(tilt_u, rdi) ^ rdi) != 0)
 
-.Lfound
+.Lfound:
 ;	mov	r12,[rsp+8]	;
 	mov	rbx,[rsp+0]	;  return rax; // tilting up results in change
 	mov	rsp,rbp		;

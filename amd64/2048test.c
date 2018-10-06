@@ -27,7 +27,7 @@ uint64_t print_em(uint64_t grid) {
   return em;
 }
 
-void main(void) {
+void print_test(void) {
   uint64_t gridempty = 0x0000000000000000;
   uint64_t lastempty = 0x123456789abcdef0;
   uint64_t outputseq = 0x08192a3b4c5d6e7f;
@@ -44,4 +44,14 @@ void main(void) {
   print_em(noneempty);
   print4x4(oddsempty);
   print_em(oddsempty);
+}
+
+void move_test(void) {
+}
+
+void drop_test(void) {
+}
+
+void main(void) {
+  print_test();
 }
