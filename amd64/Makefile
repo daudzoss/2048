@@ -1,5 +1,5 @@
-ASM = nasm
-ASMFLAGS = -felf64 -gdwarf
+ASM = yasm
+ASMFLAGS = -felf64 -gdwarf2
 
 2048test : 2048test.o 2048drop.o 2048game.o
 	gcc 2048test.o 2048drop.o 2048game.o -o 2048

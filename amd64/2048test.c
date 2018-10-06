@@ -1,6 +1,12 @@
 #include <stdio.h>
 #include <stdint.h>
 
+uint64_t gridempty = 0x0000000000000000;
+uint64_t lastempty = 0x123456789abcdef0;
+uint64_t outputseq = 0x08192a3b4c5d6e7f;
+uint64_t noneempty = 0x1111222233334444;
+uint64_t oddsempty = 0x1020304050607080;
+
 extern void print4x4(uint64_t);
 
 extern uint64_t empties(uint64_t);
@@ -23,17 +29,11 @@ uint64_t print_em(uint64_t grid) {
   if (count)
     printf(" %d", i); // implicitly the 16th one also blank
 
-  printf("\n\n");
+  printf(" (0x%lx)\n\n", em);
   return em;
 }
 
 void print_test(void) {
-  uint64_t gridempty = 0x0000000000000000;
-  uint64_t lastempty = 0x123456789abcdef0;
-  uint64_t outputseq = 0x08192a3b4c5d6e7f;
-  uint64_t noneempty = 0x1111222233334444;
-  uint64_t oddsempty = 0x1020304050607080;
-
   print4x4(gridempty);
   print_em(gridempty);
   print4x4(lastempty);
@@ -49,9 +49,26 @@ void print_test(void) {
 void move_test(void) {
 }
 
+extern uint64_t dropnew(uint64_t);
+
+void printnew(uint64_t old) {
+  uint64_t new = dropnew(old);
+
+  print4x4(old);
+  printf("dropping 0x%016lx:\n", old ^ new);
+  print4x4(new);
+  printf("\n\n");
+}
+
 void drop_test(void) {
+//  printnew(gridempty);
+  printnew(lastempty);
+//  printnew(outputseq);
+//  printnew(noneempty);
+//  printnew(oddsempty);
 }
 
 void main(void) {
-  print_test();
+//  print_test();
+  drop_test();
 }

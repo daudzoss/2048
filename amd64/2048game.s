@@ -36,20 +36,20 @@ strout:
 	global	print4x4
 	extern	printf
 print4x4:
-	push	rbp		;void print4x4(uint64_t rdi) {
+	push	rbp		;void print4x4(register uint64_t di) {
 	mov	rbp,rsp		;
-	lea	rsp,[rsp-32]	; auto
-	lea	rsi,[rsp+16]	;  uint8_t rsi[16];
-	mov	[rsp+8],r12	; rdi =(rdi&(0xff<<56)>>56)|(rdi&(0xff<<48)>>40)
-	mov	[rsp+0],rbx	;      |(rdi&(0xff<<40)>>24)|(rdi&(0xff<<32)>>8)
-	mov	rcx,nybmask	;      |(rdi&(0xff<<24)<<8)|(rdi&(0xff<<16)<<24)
-	bswap	rdi		;      |(rdi&(0xff<<8)<<40)|(rdi&(0xff<<0)<<56);
+	lea	rsp,[rsp-32]	; auto uint8_t tile[16];
+	lea	rsi,[rsp+16]	; register uint64_t* si = tile;
+	mov	[rsp+8],r12	; di = (di&(0xff<<56)>>56) | (di&(0xff<<48)>>40)
+	mov	[rsp+0],rbx	;      |(di&(0xff<<40)>>24) | (di&(0xff<<32)>>8)
+	mov	rcx,nybmask	;      |(di&(0xff<<24)<<8) | (di&(0xff<<16)<<24)
+	bswap	rdi		;      |(di&(0xff<<8)<<40) | (di&(0xff<<0)<<56);
 	mov	rax,rdi		; // put pre-located tiles into rows 2,3
 	and	rax,rcx		; for (int i = 0; i < 8; i++)
-	mov	[rsi+8],rax	;  rsi[i+8] = (rdi >> (i*8)) & 0x0f;
+	mov	[rsi+8],rax	;  si[i+8] = (di >> (i*8)) & 0x0f;
 	shr	rdi,4		; // put interleaved tiles into rows 0,1
 	and	rdi,rcx		; for (int i = 0; i < 8; i++)
-	mov	[rsi+0],rdi	;  rsi[i+0] = ((rdi>>4) >> (i*8)) & 0x0f;
+	mov	[rsi+0],rdi	;  si[i+0] = ((di>>4) >> (i*8)) & 0x0f;
 
 .L1print4x4:
 	mov	ebx,[rsi]	; for (int i = 0; i < 4; i++) {
@@ -60,7 +60,7 @@ print4x4:
 	lea	rdi,[rel values];
 	lea	rdi,[rdi+8*rax]	;
 	mov	al,0		;
-	call	printf		;   printf("%s", values[rsi[i*4+j]]);
+	call	printf		;   printf("%s", values[si[i*4+j]]);
 	mov	rsi,r12		;
 	mov	cl,0xff		;
 	shrd	ebx,ecx,8	;
@@ -79,25 +79,25 @@ print4x4:
 	mov	r12,[rsp+8]	;
 	mov	rsp,rbp		;
 	pop	rbp		;
-	ret			;}
+	ret			;} // print4x4()
 
 	global	move
 move:	
-	push	rbp		;uint64_t move(uint8_t rdi, uint64_t rsi) {
-	mov	rbp,rsp		;
-	lea	rsp,[rsp-16]	; auto rsp[2]; // rcx and rdx backup
+	push	rbp		;register uint64_t move(register uint8_t di,
+	mov	rbp,rsp		;                       register uint64_t si) {
+	lea	rsp,[rsp-16]	; auto uint64_t oldrows[2];
 	
-	mov	rax,nybmask	;
-	mov	rcx,rsi		;
+	mov	rax,nybmask	; register uint64_t* sp = oldrows;
+	mov	rcx,rsi		; register uint64_t a = 0xf0f0f0f0f0f0f0f0;
 	shr	rdx,4		; // upper two rows:
-	and	rcx,rax		; uint64_t rcx = (rsi & 0xf0f0f0f0f0f0f0f0)>>4;
-	mov	[rsp+0],rcx	; rsp[0] = rcx;
+	and	rcx,rax		; register uint64_t c = si & a;
+	mov	[rsp+0],rcx	; sp[0] = c;
 	mov	rdx,rsi		; // lower two rows:
-	and	rdx,rax		; uint64_t rdx = (rsi & 0x0f0f0f0f0f0f0f0f);
-	mov	[rsp+8],rdx	; rsp[1] = rdx;
+	and	rdx,rax		; register uint64_t d = si & (a>>4);
+	mov	[rsp+8],rdx	; sp[1] = d;
 
-	mov	rax,rsi		; uint64_t rax = rsi; // default return value
-	cmp	rdi,tilt_l	; switch (rdi) {
+	mov	rax,rsi		; register uint64_t a = si; // default ret val
+	cmp	rdi,tilt_l	; switch (di) {
 	jne	.Lr		;  case tilt_l: // first bias left
 	
 	mov	rax,0xf<<58	;
@@ -127,52 +127,52 @@ move:
 
 .Lbad:
 	mov	rsp,rbp		; }
-	pop	rbp		; return rax;
+	pop	rbp		; return a;
 	ret			;}
 	
 
 	extern	empties
 	global	anymove
 anymove:
-	push	rbp		;uint64_t anymove(uint8_t rdi) {
-	mov	rbp,rsp		;
-	lea	rsp,[rsp-16]	; uint64_t rax;
+	push	rbp		;register uint64_t anymove(register uint8_t di)
+	mov	rbp,rsp		;{
+	lea	rsp,[rsp-16]	; register uint64_t a;
 
 	mov	[rsp+0],rbx	;
 ;	mov	[rsp+8],r12	;
 	mov	rbx,rdi		;
 	
 	call	empties		;
-	or	rax,0		; if ((rax = empties(rdi)) == 0)  
-	jnz	.Lfound		;  return rax; // board has no empty cells
+	or	rax,0		; if ((a = empties(di)) == 0)  
+	jnz	.Lfound		;  return a; // board has no empty cells
 
 	mov	edi,tilt_l ;
 	mov	rsi,rbx		;
 	call	move		;
-	xor	rax,rbx		; if ((rax = move(tilt_l, rdi) ^ rdi) != 0)
-	jne	.Lfound		;  return rax; // tilting left results in change
+	xor	rax,rbx		; if ((a = move(tilt_l, di) ^ di) != 0)
+	jne	.Lfound		;  return a; // tilting left results in change
 	
 	mov	edi,tilt_r	;
 	mov	rsi,rbx		;
 	call	move		;
-	xor	rax,rbx		; if ((rax = move(tilt_r, rdi) ^ rdi) != 0)
-	jne	.Lfound		;  return rax;// tilting right results in change
+	xor	rax,rbx		; else if ((a = move(tilt_r, di) ^ di) != 0)
+	jne	.Lfound		;  return a;// tilting right results in change
 	
 	mov	edi,tilt_d	;
 	mov	rsi,rbx		;
 	call	move		;
-	xor	rax,rbx		; if ((rax = move(tilt_d, rdi) ^ rdi) != 0)
-	jne	.Lfound		;  return rax; // tilting down results in change
+	xor	rax,rbx		; else if ((a = move(tilt_d, di) ^ di) != 0)
+	jne	.Lfound		;  return a; // tilting down results in change
 	
 	mov	edi,tilt_u	;
 	mov	rsi,rbx		;
 	call	move		;
-	xor	rax,rbx		; if ((rax = move(tilt_u, rdi) ^ rdi) != 0)
+	xor	rax,rbx		; else if ((a = move(tilt_u, di) ^ di) != 0)
 
 .Lfound:
 ;	mov	r12,[rsp+8]	;
-	mov	rbx,[rsp+0]	;  return rax; // tilting up results in change
+	mov	rbx,[rsp+0]	;  return a; // tilting up results in change
 	mov	rsp,rbp		;
-	pop	rbp		; return 0;
+	pop	rbp		; return 0; // board is seized up, no moves left
 	ret			;}
 
