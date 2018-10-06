@@ -53,7 +53,7 @@ dropnew:
 
 	mov	rbx,rdi		; register uint64_t b = di;
 	call	empties		;
-	mov	rdi,rax		;//FIXME:empties(0x123456789abcdef0) is 1 not f1
+	mov	rdi,rax		;
 	call	efields		; register uint64_t a = efields(empties(di));
 	or	rax,0		;
 	jz	.Lcantdrop	; if (a) { // grid has empty spaces
@@ -77,8 +77,8 @@ dropnew:
 	jz	.Lfindemp	;  } while (a == 0);
 
 .Lcantdrop:
-	or	rax,rbx		;  return a | b; // add new cell to original
-	mov	rbx,[rsp+0]	;
+	or	rax,rbx		; }
+	mov	rbx,[rsp+0]	; return a | b; // add new cell to original
 	mov	rsp,rbp		;
 	pop	rbp		;
 	ret			;} // dropnew()
