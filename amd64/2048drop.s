@@ -7,8 +7,8 @@ altern	equ	0x5555555555555555
 empties:
 	push	rbp		;register uint64_t empties(register uint64_t di)
 	mov	rbp,rsp		;{register uint64_t a = 0x0000000000000000;
-	xor	rax,rax		; for (int i = 0; i < 0x10; i++) {
-%assign f 0x400
+	xor	rax,rax		; for (int i = 0xf; i >= 0; i--) {
+%assign f 0x43c
 %rep 16
 	bextr	rsi,rdi,f	;  // determine whether the cell is clear (1)
 	setz	cl		;  uint8_t c = (di & (0xf << (4*i))) ? 0 : 1;
@@ -22,7 +22,7 @@ empties:
 	or	dl,cl		;
 	shl	rax,4		;  // shift in either 0 or f, append new count
 	mov	al,dl		;  a = (a << 4) | (c ? 0xf0 : 0) | ((a+c)&0xf);
-%assign f f+4
+%assign f f-4
 %endrep
 	mov	rsp,rbp		; } // will remain all zero if truly full
 	pop	rbp		; return a; // empty nybbles mask:count of empty
