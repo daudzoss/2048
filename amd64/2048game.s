@@ -106,18 +106,23 @@ move:
 
 	cmp	rdi,tilt_l	; switch (di) {
 	jne	.Lr		;  case tilt_l: // first bias left
-	
-	mov	eax,0x000000ff	;
 %assign i 12
 %rep 4
-	ror	eax,8		;
+	mov	eax,0xff000000	;
+%assign j 0	
 %rep 4
+%assign k 0
+%rep 4-j
+	mov	ecx,r %+ i %+ d	;
+	shl	ecx,8		;
 	mov	edx,eax		;
 	and	edx,r %+ i %+ d	;
-	jnz	.Ld %+ i	;
-	shl	r %+ i %+ d,8	;
+	cmovnz	r %+ i %+ d,ecx	;
+%assign k k+1
 %endrep
-.Ld %+ i
+	ror	eax,8		;
+%assign j j+1
+%endrep
 %assign i i+1
 %endrep
 
