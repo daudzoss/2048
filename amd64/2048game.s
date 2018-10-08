@@ -102,28 +102,46 @@ move:
 	shld	r14,rdx,32	; r14d = 0x00000000ffffffff & (rdx >> 32);
 	mov	r15,rdx		; r15d = 0x00000000ffffffff & rdx;         //bot
 
-	mov	rax,rsi		; register uint64_t a = si; // default ret val
+	mov	rax,rsi		; register uint64_t a = si; // default rtn value
+
+%macro	scootLR	3
+	mov	edx,eax		;
+	and	edx,%2 %+ d	;
+	jnz	%3		;
+	sh%1	%2,8		;
+
+	mov	edx,eax		;
+	and	edx,%2 %+ d	;
+	jnz	%3		;
+	sh%1	%2,8		;
+	mov	edx,eax		;
+	and	edx,%2 %+ d	;
+	jnz	%3		;
+	sh%1	%2,8		;
+	mov	edx,eax		;
+	and	edx,%2 %+ d	;
+	jnz	%3		;
+	sh%1	%2,8		;
+%endmacro
+	
 	cmp	rdi,tilt_l	; switch (di) {
 	jne	.Lr		;  case tilt_l: // first bias left
 	
-	mov	rax,0xf<<58	;
-;	mov	rdx,
-;	and	rax,rcx		;
-	
-	
-;	cmov
-;	xor
+	mov	eax,0x000000ff	;
+%assign i 12
+%rep 4
+	ror	eax,8		;
+ 	scootLR	l,r %+ i,.Ldone %+ i ;
+.Ldone %+ i
+%assign i i+1
+%endrep
 
-;	mov	rax,0x0f<<
-	shr	rax,32		;
-	xor	rax,rdx		;
-	and	rax,0x0f000000	;
-	
 .Lr:
 	cmp	rdi,tilt_r	;
 	jne	.Ld		;  case tilt_r:
+	
 
-	ror	
+
 .Ld:
 	cmp	rdi,tilt_d	; } switch (di) {
 	jne	.Lu		;  case tilt_d:
