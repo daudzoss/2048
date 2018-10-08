@@ -85,16 +85,22 @@ print4x4:
 move:	
 	push	rbp		;register uint64_t move(register uint8_t di,
 	mov	rbp,rsp		;                       register uint64_t si) {
-	lea	rsp,[rsp-16]	; auto uint64_t oldrows[2];
+	lea	rsp,[rsp-32]	;
+	mov	[rsp+0],r12	;
+	mov	[rsp+8],r13	;
+	mov	[rsp+16],r14	;
+	mov	[rsp+24],r15	; register r12d, r13d, r14d, r15d; // 4 32b rows
 	
-	mov	rax,nybmask	; register uint64_t* sp = oldrows;
-	mov	rcx,rsi		; register uint64_t a = 0xf0f0f0f0f0f0f0f0;
+	mov	rax,nybmask	; register uint64_t a = 0xf0f0f0f0f0f0f0f0;
+	mov	rcx,rsi		; register uint64_t c, d
 	shr	rdx,4		; // upper two rows:
-	and	rcx,rax		; register uint64_t c = si & a;
-	mov	[rsp+0],rcx	; sp[0] = c;
+	and	rcx,rax		; c = si & a;
 	mov	rdx,rsi		; // lower two rows:
-	and	rdx,rax		; register uint64_t d = si & (a>>4);
-	mov	[rsp+8],rdx	; sp[1] = d;
+	and	rdx,rax		; d = si & (a>>4);
+	shld	r12,rcx,32	; r12d = 0x00000000ffffffff & (rcx >> 32); //top
+	mov	r13,rcx		; r13d = 0x00000000ffffffff & rcx;
+	shld	r14,rdx,32	; r14d = 0x00000000ffffffff & (rdx >> 32);
+	mov	r15,rdx		; r15d = 0x00000000ffffffff & rdx;         //bot
 
 	mov	rax,rsi		; register uint64_t a = si; // default ret val
 	cmp	rdi,tilt_l	; switch (di) {
@@ -117,8 +123,9 @@ move:
 	cmp	rdi,tilt_r	;
 	jne	.Ld		;  case tilt_r:
 
+	ror	
 .Ld:
-	cmp	rdi,tilt_d	;
+	cmp	rdi,tilt_d	; } switch (di) {
 	jne	.Lu		;  case tilt_d:
 	
 .Lu:
@@ -126,6 +133,10 @@ move:
 	jne	.Lbad		;  case tilt_u:
 
 .Lbad:
+	mov	r12,[rsp+0]	;
+	mov	r13,[rsp+8]	;
+	mov	r14,[rsp+16]	;
+	mov	r15,[rsp+24]	;
 	mov	rsp,rbp		; }
 	pop	rbp		; return a;
 	ret			;}
@@ -143,8 +154,8 @@ anymove:
 	mov	rbx,rdi		;
 	
 	call	empties		;
-	or	rax,0		; if ((a = empties(di)) == 0)  
-	jnz	.Lfound		;  return a; // board has no empty cells
+	or	rax,0		; if ((a = empties(di)) != 0)  
+	jnz	.Lfound		;  return a; // board has empty cells
 
 	mov	edi,tilt_l ;
 	mov	rsi,rbx		;
