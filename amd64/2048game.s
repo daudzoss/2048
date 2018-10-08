@@ -89,7 +89,7 @@ move:
 	mov	[rsp+0],r12	;
 	mov	[rsp+8],r13	;
 	mov	[rsp+16],r14	;
-	mov	[rsp+24],r15	; register r12d, r13d, r14d, r15d; // 4 32b rows
+	mov	[rsp+24],r15	; register uint32_t r[16];
 	
 	mov	rax,nybmask	; register uint64_t a = 0xf0f0f0f0f0f0f0f0;
 	mov	rcx,rsi		; register uint64_t c, d
@@ -108,19 +108,19 @@ move:
 	jne	.Lr		;  case tilt_l: // first bias left
 %assign i 12
 %rep 4
-	mov	eax,0xff000000	;
+	mov	eax,0xff000000	;   for (int i = 12; i < 16; i++) {
 %assign j 0	
 %rep 4
 %assign k 0
 %rep 4-j
-	mov	ecx,r %+ i %+ d	;
-	shl	ecx,8		;
-	mov	edx,eax		;
-	and	edx,r %+ i %+ d	;
-	cmovnz	r %+ i %+ d,ecx	;
+	mov	ecx,r %+ i %+ d	;/*register uint64_t d =*/ a = 0xff000000;
+	shl	ecx,8		;    for (int j = 0; j < 4; j++)
+	mov	edx,eax		;     for (int k = 0; k < 4-j; k++)
+	and	edx,r %+ i %+ d	;      if (r[i] & a) 
+	cmovnz	r %+ i %+ d,ecx	;       
 %assign k k+1
 %endrep
-	ror	eax,8		;
+	ror	eax,8		;   }
 %assign j j+1
 %endrep
 %assign i i+1
