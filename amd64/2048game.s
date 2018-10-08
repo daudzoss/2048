@@ -81,15 +81,6 @@ print4x4:
 	pop	rbp		;
 	ret			;} // print4x4()
 
-%macro	scootLR	3
-%rep 4
-	mov	edx,eax		;
-	and	edx,%2 %+ d	;
-	jnz	%3		;
-	sh%1	%2,8		;
-%endrep
-%endmacro
-	
 	global	move
 move:	
 	push	rbp		;register uint64_t move(register uint8_t di,
@@ -120,7 +111,12 @@ move:
 %assign i 12
 %rep 4
 	ror	eax,8		;
- 	scootLR	l,r %+ i,.Ld %+ i
+%rep 4
+	mov	edx,eax		;
+	and	edx,r %+ i %+ d	;
+	jnz	.Ld %+ i	;
+	shl	r %+ i %+ d,8	;
+%endrep
 .Ld %+ i
 %assign i i+1
 %endrep
