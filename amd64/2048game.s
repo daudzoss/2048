@@ -81,6 +81,15 @@ print4x4:
 	pop	rbp		;
 	ret			;} // print4x4()
 
+%macro	scootLR	3
+%rep 4
+	mov	edx,eax		;
+	and	edx,%2 %+ d	;
+	jnz	%3		;
+	sh%1	%2,8		;
+%endrep
+%endmacro
+	
 	global	move
 move:	
 	push	rbp		;register uint64_t move(register uint8_t di,
@@ -104,26 +113,6 @@ move:
 
 	mov	rax,rsi		; register uint64_t a = si; // default rtn value
 
-%macro	scootLR	3
-	mov	edx,eax		;
-	and	edx,%2 %+ d	;
-	jnz	%3		;
-	sh%1	%2,8		;
-
-	mov	edx,eax		;
-	and	edx,%2 %+ d	;
-	jnz	%3		;
-	sh%1	%2,8		;
-	mov	edx,eax		;
-	and	edx,%2 %+ d	;
-	jnz	%3		;
-	sh%1	%2,8		;
-	mov	edx,eax		;
-	and	edx,%2 %+ d	;
-	jnz	%3		;
-	sh%1	%2,8		;
-%endmacro
-	
 	cmp	rdi,tilt_l	; switch (di) {
 	jne	.Lr		;  case tilt_l: // first bias left
 	
@@ -131,8 +120,8 @@ move:
 %assign i 12
 %rep 4
 	ror	eax,8		;
- 	scootLR	l,r %+ i,.Ldone %+ i ;
-.Ldone %+ i
+ 	scootLR	l,r %+ i,.Ld %+ i
+.Ld %+ i
 %assign i i+1
 %endrep
 
