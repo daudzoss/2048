@@ -2,10 +2,10 @@
 
 nybmask	equ	0x0f0f0f0f0f0f0f0f
 	
-tilt_l	equ	0x02
-tilt_r	equ	0xfe
-tilt_d	equ	0x08
-tilt_u	equ	0xf8
+tilt_r	equ	0x0001
+tilt_l	equ	0xffff
+tilt_d	equ	0x0002
+tilt_u	equ	0xfffe
 	
 	section	.data
 values:
@@ -97,9 +97,17 @@ move:
 	mov	r11,rdx		; r[11] = 0x00000000ffffffff & rdx;       // bot
 	mov	rax,rsi		; a = si; // default return value: si unaltered
 	
-	cmp	rdi,tilt_l	; switch (di) {
-	jne	.Lr		;  case tilt_l: // first bias left
+	cmp	di,tilt_r	; switch (di) {
+	jne	.Ll		;  case tilt_r: 
 	
+	bswap	r8d		;
+	bswap	r9d		;
+	bswap	r10d		;
+	bswap	r11d		;
+
+.Ll
+	tst	di,tilt_l&tilt_r;
+	jz	.Ld		;  case tilt_l: // first bias left   case tilt_l: // first bias left case tilt_l: // first bias left case tilt_l: // first bias left
 %assign	i 8
 %rep 4
 	mov	edx,r %+ i %+ d	;   for (int i = 8; i < 12; i++) { // each row
@@ -121,20 +129,19 @@ move:
 %assign i i+1
 %endrep
 	
-	mov	esi,0x01000000	;   for (int i = 8; i < 12; i++) // each row
-	mov	edi,0xff000000	;    for (int j = 0; j < 3; j++) { // left 3 col
+	mov	esi,0xff000000	;   for (int i = 8; i < 12; i++) // each row
 %assign i 8
 %rep 4
 %assign j 0
 %rep 3
-	mov	eax,r %+ i %+ d	;    
-	mov	ecx,edi		;
+	mov	eax,r %+ i %+ d	;    for (int j = 0; j < 3; j++) { // left 3 col
+	mov	ecx,esi		;
 	and	ecx,eax		;
-	shr	ecx,8		;     c = (r[i] >> 4) & 0xff0000; // left nybble
-	mov	edx,edi		;
+	shr	ecx,8		;     c = (r[i]>>24) & 0xff; // leftmost byte
+	mov	edx,esi		;
 	shr	edx,8		;
-	and	edx,eax		;     d = r[i] & 0xff0000; // next nybble over
-	add	eax,esi		;     r[i] <<= 8;// preserve this processed byte
+	and	edx,eax		;     d = (r[i]>>16) & 0xff; // next byte right
+	sub	eax,esi		;     r[i] <<= 8;// preserve this processed byte
 	xor	ecx,edx		;     if (c == d) { // coalesce nybbles into 1,
 	cmovz	r %+ i %+ d,eax	;      r[i] += 0x0000000100000000; // incr power
 	setz	cl		;      r[i] = (0xffffffff00000000 & r[i]) |
@@ -145,13 +152,20 @@ move:
 %endrep
 %assign i i+1
 %endrep
+	cmp	di,tilt_l	;   if (di != tilt_l) {
+	je	.Lmoved		;
+	bswap	r8d		;
+	bswap	r9d		;
+	bswap	r10d		;
+	bswap	r11d		;   }
+
 	jmp	.Lmoved		;   break;    
 .Lr:
-	cmp	rdi,tilt_r	;
+	cmp	edi,tilt_r	;
 	jne	.Ld		;  case tilt_r:
 
 .Ld:
-	cmp	rdi,tilt_d	; } switch (di) {
+	cmp	edi,tilt_d	; } switch (di) {
 	jne	.Lu		;  case tilt_d:
 	
 .Lu:
