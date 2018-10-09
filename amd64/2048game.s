@@ -85,50 +85,111 @@ print4x4:
 move:	
 	push	rbp		;register uint64_t move(register uint8_t di,
 	mov	rbp,rsp		;                       register uint64_t si) {
-	lea	rsp,[rsp-32]	;
-	mov	[rsp+0],r12	;
-	mov	[rsp+8],r13	;
-	mov	[rsp+16],r14	;
-	mov	[rsp+24],r15	; register uint32_t r[16];
+	mov	rax,nybmask	; register uint64_t a = 0xf0f0f0f0f0f0f0f, c, d;
+	mov	rdx,rsi		; register uint32_t r[12];
+	and	rdx,rax		; // lower two rows:
+	mov	rcx,rsi		; d = si & a;
+	shr	rcx,4		; // upper two rows:
+	and	rcx,rax		; c = (si >> 4) & a;
+	shld	r8,rcx,32	; r[8] = 0x00000000ffffffff & (rcx >> 32);// top
+	mov	r9,rcx		; r[9] = 0x00000000ffffffff & rcx;
+	shld	r10,rdx,32	; r[10] = 0x00000000ffffffff & (rdx >> 32);
+	mov	r11,rdx		; r[11] = 0x00000000ffffffff & rdx;       // bot
+	mov	rax,rsi		; a = si; // default rtn value
 	
-	mov	rax,nybmask	; register uint64_t a = 0xf0f0f0f0f0f0f0f0;
-	mov	rcx,rsi		; register uint64_t c, d
-	shr	rdx,4		; // upper two rows:
-	and	rcx,rax		; c = si & a;
-	mov	rdx,rsi		; // lower two rows:
-	and	rdx,rax		; d = si & (a>>4);
-	shld	r12,rcx,32	; r12d = 0x00000000ffffffff & (rcx >> 32); //top
-	mov	r13,rcx		; r13d = 0x00000000ffffffff & rcx;
-	shld	r14,rdx,32	; r14d = 0x00000000ffffffff & (rdx >> 32);
-	mov	r15,rdx		; r15d = 0x00000000ffffffff & rdx;         //bot
-
-	mov	rax,rsi		; register uint64_t a = si; // default rtn value
-
 	cmp	rdi,tilt_l	; switch (di) {
 	jne	.Lr		;  case tilt_l: // first bias left
-%assign i 12
+	
+%assign	i 8
 %rep 4
-	mov	eax,0xff000000	;   for (int i = 12; i < 16; i++) {
+	mov	edx,r %+ i %+ d	;   for (int i = 8; i < 12; i++) { // each row
+%assign j 0
+%rep 4
+	mov	ecx,edx		;    d = r[i] && 0xffffffff; // working row copy
+%rep 4-j
+	rol	ecx,8		;    for (int j = 0; j < 4; j++) { // each col
+	mov	al,cl		;     while (d & 0xff000000 == 0) {
+	xor	cl,cl		;      d |= (d & 0xffffffff) << 8;
+	and	al,0xff		;     }
+	cmovz	edx,ecx		;    }
+%endrep
+	shl	rdx,8		;    d <<= 8; // preserve already processed byte
+%assign j j+1
+%endrep	
+	shr	rdx,32		;    r[i] = d;
+	mov	r %+ i,rdx	;   }
+%assign i i+1
+%endrep
+	
+%if 0 ;same as above but takes too many opcodes
+%assign	i 8
+%rep 4
+%assign j 0
+%rep 4
+	mov	ecx,r %+ i %+ d	;
+%rep 4-j
+	rol	ecx,8		;
+	mov	al,cl		;
+	xor	cl,cl		;
+	and	al,0xff		;
+	cmovz	r %+ i %+ d,ecx	;
+%endrep
+	shl	r %+ i,8	;
+%assign j j+1
+%endrep	
+	shr	r %+ i,32	;
+%assign i i+1
+%endrep
+%endif
+%if 0
+%assign i 8
+%rep 4
 %assign j 0	
 %rep 4
 %assign k 0
 %rep 4-j
-	mov	ecx,r %+ i %+ d	;/*register uint64_t d =*/ a = 0xff000000;
-	shl	ecx,8		;    for (int j = 0; j < 4; j++)
-	mov	edx,eax		;     for (int k = 0; k < 4-j; k++)
-	and	edx,r %+ i %+ d	;      if (r[i] & a) 
-	cmovnz	r %+ i %+ d,ecx	;       
-%assign k k+1
-%endrep
-	ror	eax,8		;   }
+
+%assign i 8
+%rep 4
+	mov	eax,0xff000000	;   for (int i = 8; i < 12; i++) { // each row
+%assign j 0
+%rep 3
+;;; FIXME:need to add one to the right cell, not the left (since it'll survive)
+	mov	ecx,eax		;
+	and	ecx,0x01010101	;
+	add	ecx,r %+ i %+ d	;
+	mov	edx,eax		;
+	ror	eax,8		;
+	and	edx,r %+ i %+ d	;
 %assign j j+1
 %endrep
 %assign i i+1
 %endrep
-
+%endif
+	jmp	.Lmoved		;
 .Lr:
 	cmp	rdi,tilt_r	;
 	jne	.Ld		;  case tilt_r:
+;;; fixme: below is deprecated
+%assign i 8
+%rep 4
+	mov	eax,0x000000ff	;   for (int i = 8; i < 12; i++) { // each row
+%assign j 0	
+%rep 4
+%assign k 0
+%rep 4-j
+	mov	ecx,r %+ i %+ d	;    a = 0x000000ff;
+	shr	ecx,8		;    for (int j = 0; j < 4; j++) { // each col
+	mov	edx,eax		;     for (int k = 0; k < 4-j; k++) // while 0
+	and	edx,r %+ i %+ d	;      if (r[i] & a) r[i] >>= 8; // align right
+	cmovnz	r %+ i %+ d,ecx	;     a <<= 8;
+%assign k k+1
+%endrep
+	rol	eax,8		;   } }
+%assign j j+1
+%endrep
+%assign i i+1
+%endrep
 	
 
 
@@ -140,11 +201,16 @@ move:
 	cmp	rdi,tilt_u	;
 	jne	.Lbad		;  case tilt_u:
 
+.Lmoved:
+	shl	r8d,4		;
+	or	r8d,r9d		;
+	shl	r8,32		;
+	shl	r10d,4		;
+	or	r10d,r11d	;
+	mov	rax,r8		;
+	or	eax,r10d	;
+
 .Lbad:
-	mov	r12,[rsp+0]	;
-	mov	r13,[rsp+8]	;
-	mov	r14,[rsp+16]	;
-	mov	r15,[rsp+24]	;
 	mov	rsp,rbp		; }
 	pop	rbp		; return a;
 	ret			;}

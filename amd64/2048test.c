@@ -60,15 +60,33 @@ void printnew(uint64_t old) {
   printf("\n\n");
 }
 
+void printmov(uint8_t mov, uint64_t old) {
+  uint64_t new = move(mov, old);
+
+  print4x4(old);
+  printf("pushing in direction %d:\n", mov);
+  print4x4(new);
+  printf("\n\n");
+}
+
 void drop_test(void) {
-//  printnew(gridempty);
+  printnew(gridempty);
   printnew(lastempty);
-//  printnew(outputseq);
-//  printnew(noneempty);
-//  printnew(oddsempty);
+  printnew(outputseq);
+  printnew(noneempty);
+  printnew(oddsempty);
+}
+
+void left_test(void) {
+  printmov(2, gridempty);
+  printmov(2, lastempty);
+  printmov(2, outputseq);
+  printmov(2, noneempty);
+  printmov(2, oddsempty);
 }
 
 void main(void) {
-//  print_test();
+  print_test();
   drop_test();
+  left_test();
 }
