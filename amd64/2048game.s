@@ -95,7 +95,7 @@ move:
 	mov	r9,rcx		; r[9] = 0x00000000ffffffff & rcx;
 	shld	r10,rdx,32	; r[10] = 0x00000000ffffffff & (rdx >> 32);
 	mov	r11,rdx		; r[11] = 0x00000000ffffffff & rdx;       // bot
-	mov	rax,rsi		; a = si; // default rtn value
+	mov	rax,rsi		; a = si; // default return value: si unaltered
 	
 	cmp	rdi,tilt_l	; switch (di) {
 	jne	.Lr		;  case tilt_l: // first bias left
@@ -111,9 +111,9 @@ move:
 	mov	al,cl		;     while (d & 0xff000000 == 0) {
 	xor	cl,cl		;      d |= (d & 0xffffffff) << 8;
 	and	al,0xff		;     }
-	cmovz	edx,ecx		;    }
+	cmovz	edx,ecx		;     d <<= 8; // preserve just-processed byte
 %endrep
-	shl	rdx,8		;    d <<= 8; // preserve already processed byte
+	shl	rdx,8		;    }
 %assign j j+1
 %endrep	
 	shr	rdx,32		;    r[i] = d;
@@ -121,77 +121,34 @@ move:
 %assign i i+1
 %endrep
 	
-%if 0 ;same as above but takes too many opcodes
-%assign	i 8
-%rep 4
-%assign j 0
-%rep 4
-	mov	ecx,r %+ i %+ d	;
-%rep 4-j
-	rol	ecx,8		;
-	mov	al,cl		;
-	xor	cl,cl		;
-	and	al,0xff		;
-	cmovz	r %+ i %+ d,ecx	;
-%endrep
-	shl	r %+ i,8	;
-%assign j j+1
-%endrep	
-	shr	r %+ i,32	;
-%assign i i+1
-%endrep
-%endif
-%if 0
+	mov	esi,0x01000000	;   for (int i = 8; i < 12; i++) // each row
+	mov	edi,0xff000000	;    for (int j = 0; j < 3; j++) { // left 3 col
 %assign i 8
 %rep 4
-%assign j 0	
-%rep 4
-%assign k 0
-%rep 4-j
-
-%assign i 8
-%rep 4
-	mov	eax,0xff000000	;   for (int i = 8; i < 12; i++) { // each row
 %assign j 0
 %rep 3
-;;; FIXME:need to add one to the right cell, not the left (since it'll survive)
-	mov	ecx,eax		;
-	and	ecx,0x01010101	;
-	add	ecx,r %+ i %+ d	;
-	mov	edx,eax		;
-	ror	eax,8		;
-	and	edx,r %+ i %+ d	;
+	mov	eax,r %+ i %+ d	;    
+	mov	ecx,edi		;
+	and	ecx,eax		;
+	shr	ecx,8		;     c = (r[i] >> 4) & 0xff0000; // left nybble
+	mov	edx,edi		;
+	shr	edx,8		;
+	and	edx,eax		;     d = r[i] & 0xff0000; // next nybble over
+	add	eax,esi		;     r[i] <<= 8;// preserve this processed byte
+	xor	ecx,edx		;     if (c == d) { // coalesce nybbles into 1,
+	cmovz	r %+ i %+ d,eax	;      r[i] += 0x0000000100000000; // incr power
+	setz	cl		;      r[i] = (0xffffffff00000000 & r[i]) |
+	shl	r %+ i,8 ;[sic]	;            ((0x0000000000ffffff & r[i]) << 8);
+	shl	cl,3		;     }
+	shl	r %+ i %+ d,cl	;    }
 %assign j j+1
 %endrep
 %assign i i+1
 %endrep
-%endif
-	jmp	.Lmoved		;
+	jmp	.Lmoved		;   break;    
 .Lr:
 	cmp	rdi,tilt_r	;
 	jne	.Ld		;  case tilt_r:
-;;; fixme: below is deprecated
-%assign i 8
-%rep 4
-	mov	eax,0x000000ff	;   for (int i = 8; i < 12; i++) { // each row
-%assign j 0	
-%rep 4
-%assign k 0
-%rep 4-j
-	mov	ecx,r %+ i %+ d	;    a = 0x000000ff;
-	shr	ecx,8		;    for (int j = 0; j < 4; j++) { // each col
-	mov	edx,eax		;     for (int k = 0; k < 4-j; k++) // while 0
-	and	edx,r %+ i %+ d	;      if (r[i] & a) r[i] >>= 8; // align right
-	cmovnz	r %+ i %+ d,ecx	;     a <<= 8;
-%assign k k+1
-%endrep
-	rol	eax,8		;   } }
-%assign j j+1
-%endrep
-%assign i i+1
-%endrep
-	
-
 
 .Ld:
 	cmp	rdi,tilt_d	; } switch (di) {
