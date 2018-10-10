@@ -151,7 +151,7 @@ move:
 	shr	r %+ i %+ d,cl	;   r[i] >>= 32; // bias 32 bits right, now done
 %assign i i+1
 %endrep
-	cmp	di,tilt_r	;   if (di == tilt_l)
+	cmp	di,tilt_r	;   if (di == tilt_r)
 	jne	.Lmoved		;    for (int i = 0; i < 4; i++) // de-flip cols
 	bswap	r8d		;     r[i] = (r[i] << 24) & 0xff000000 |
 	bswap	r9d		;            (r[i] << 8)  & 0x00ff0000 |
@@ -166,8 +166,6 @@ move:
 	mov	r10,rcx		;   r[2] = 0x00000000ffffffff & rcx;
 	shld	r11,rcx,32	;   r[3] = 0x00000000ffffffff & (rcx >> 32);
 .Lu:
-	cmp	di,tilt_u	;
-	jne	.Lbad		;  case tilt_u:
 
 
 
@@ -176,28 +174,28 @@ move:
 
 
 
-
-
+	cmp	di,tilt_d	;
+	jne	.Lbad		;   if (di == tilt_) {
 	shl	r11d,4		;
-	or	r11d,r10d	;  r11 = (r11 << 4) | r10;
+	or	r11d,r10d	;    r11 = (r11 << 4) | r10;
 	shl	r11,32		;
 	shl	r9d,4		;
-	or	r9d,r8d		;  r9 = (r9 << 4) | r8;
+	or	r9d,r8d		;    r9 = (r9 << 4) | r8;
 	mov	rax,r11		;
-	or	eax,r9d		;
-	jmp	.Lbad		;  a = (r11 << 32) | r9;
+	or	eax,r9d		;    a = (r11 << 32) | r9;
+	jmp	.Lbad		;    return a;
 	
 .Lmoved:
-	shl	r8d,4		;
-	or	r8d,r9d		;  r8 = (r8 << 4) | r9;
-	shl	r8,32		;
+	shl	r8d,4		;   }
+	or	r8d,r9d		; }
+	shl	r8,32		; r8 = (r8 << 4) | r9;
 	shl	r10d,4		;
-	or	r10d,r11d	;  r10 = (r10 << 4) | r11;
+	or	r10d,r11d	; r10 = (r10 << 4) | r11;
 	mov	rax,r8		;
-	or	eax,r10d	;  a = (r8 << 32) | r10;
+	or	eax,r10d	; a = (r8 << 32) | r10;
 
 .Lbad:
-	mov	rsp,rbp		; }
+	mov	rsp,rbp		; 
 	pop	rbp		; return a;
 	ret			;}
 	
