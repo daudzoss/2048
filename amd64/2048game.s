@@ -85,19 +85,32 @@ print4x4:
 move:	
 	push	rbp		;register uint64_t move(register uint8_t di,
 	mov	rbp,rsp		;                       register uint64_t si) {
-	mov	rax,nybmask	; register uint64_t a = 0xf0f0f0f0f0f0f0f, c, d;
-	mov	rdx,rsi		; register uint32_t r[4];
-	and	rdx,rax		; // lower two rows:
-	mov	rcx,rsi		; d = si & a;
-	shr	rcx,4		; // upper two rows:
-	and	rcx,rax		; c = (si >> 4) & a;
-	shld	r8,rcx,32	; r[0] = 0x00000000ffffffff & (rcx >> 32);// top
-	mov	r9,rcx		; r[1] = 0x00000000ffffffff & rcx;
-	shld	r10,rdx,32	; r[2] = 0x00000000ffffffff & (rdx >> 32);
-	mov	r11,rdx		; r[3] = 0x00000000ffffffff & rdx;       // bot
 	mov	rax,rsi		; a = si; // default return value: si unaltered
 	
-	cmp	di,tilt_r	; switch (di) {
+.Ld
+	cmp	di,tilt_d	; switch (di) {
+	jne	.Lu		;  case tilt_d:
+	mov	rdi,rsi		;
+	call	transpo		;
+	mov	si,tilt_r	;
+	mov	rdi,rax		;
+	call	move		;
+	mov	rdi,rax		;
+	call	transpo		;   return transpo(move(tilt_r, transpo(si)));
+	jmp	.Lbad		;
+.Lu
+	cmp	di,tilt_u	;  case tilt_u:
+	jne	.Lr		;
+	mov	rdi,rsi		;
+	call	transpo		;
+	mov	si,tilt_l	;
+	mov	rdi,rax		;
+	call	move		;
+	mov	rdi,rax		;
+	call	transpo		;
+	jmp	.Lbad		;   return transpo(move(tilt_l, transpo(si)));
+.Lr
+	cmp	di,tilt_r	;
 	jne	.Ll		;  case tilt_r: // perform a left-tilt but first
 	bswap	r8d		;   for (int i = 0; i < 4; i++) // flip columns
 	bswap	r9d		;    r[i] = (r[i] << 24) & 0xff000000 |
@@ -106,6 +119,16 @@ move:
 .Ll
 	test	di,tilt_l&tilt_r;           (r[i] >> 24) & 0x000000ff;
 	jz	.Ld		;  case tilt_l: // first bias left to remove 0s
+	mov	rax,nybmask	;   register uint64_t a = 0xf0f0f0f0f0f0f0f,c,d;
+	mov	rdx,rsi		;   register uint32_t r[4];
+	and	rdx,rax		;   // lower two rows:
+	mov	rcx,rsi		;   d = si & a;
+	shr	rcx,4		;   // upper two rows:
+	and	rcx,rax		;   c = (si >> 4) & a;
+	shld	r8,rcx,32	;   r[0] = 0x00000000ffffffff & (rcx >> 32);
+	mov	r9,rcx		;   r[1] = 0x00000000ffffffff & rcx;
+	shld	r10,rdx,32	;   r[2] = 0x00000000ffffffff & (rdx >> 32);
+	mov	r11,rdx		;   r[3] = 0x00000000ffffffff & rdx;
 %assign	i 8
 %rep 4
 	mov	edx,r %+ i %+ d	;   for (int i = 0; i < 4; i++) { // each row
@@ -151,38 +174,23 @@ move:
 	shr	r %+ i %+ d,cl	;   r[i] >>= 32; // bias 32 bits right, now done
 %assign i i+1
 %endrep
-	cmp	di,tilt_r	;   if (di == tilt_r)
+	cmp	di,tilt_r	;   if (di == tilt_r) {
 	jne	.Lmoved		;    for (int i = 0; i < 4; i++) // de-flip cols
 	bswap	r8d		;     r[i] = (r[i] << 24) & 0xff000000 |
 	bswap	r9d		;            (r[i] << 8)  & 0x00ff0000 |
 	bswap	r10d		;            (r[i] >> 8)  & 0x0000ff00 |
 	bswap	r11d		;            (r[i] >> 24) & 0x000000ff;
-	jmp	.Lmoved		;   break;    
-.Ld:
-	cmp	di,tilt_d	;
-	jne	.Lu		;  case tilt_d: // perform an up-tilt with rows
-	mov	r8,rdx		;   r[0] = 0x00000000ffffffff & rdx; // reversed
-	shld	r9,rdx,32	;   r[1] = 0x00000000ffffffff & (rdx >> 32);
-	mov	r10,rcx		;   r[2] = 0x00000000ffffffff & rcx;
-	shld	r11,rcx,32	;   r[3] = 0x00000000ffffffff & (rcx >> 32);
-.Lu:
-	;; default:
+	jmp	.Lmoved		;    break;    
 
-	;; now implement the algorithm tilting up
-
-
-
-
-
-	cmp	di,tilt_d	;
+	cmp	di,tilt_d	;   }
 	jne	.Lbad		;   if (di == tilt_r) {
 	shl	r11d,4		;
-	or	r11d,r10d	;    r11 = (r11 << 4) | r10;
+	or	r11d,r10d	;    r[3] = (r[3] << 4) | r[2];
 	shl	r11,32		;
 	shl	r9d,4		;
-	or	r9d,r8d		;    r9 = (r9 << 4) | r8;
+	or	r9d,r8d		;    r[1] = (r[1] << 4) | r[0];
 	mov	rax,r11		;
-	or	eax,r9d		;    a = (r11 << 32) | r9;
+	or	eax,r9d		;    a = (r[3] << 32) | r[1];
 	jmp	.Lbad		;    return a;
 	
 .Lmoved:
@@ -195,9 +203,10 @@ move:
 	or	eax,r10d	; a = (r8 << 32) | r10;
 
 .Lbad:
-	mov	rsp,rbp		; 
-	pop	rbp		; return a;
-	ret			;}
+;	mov	rsp,rbp		; 
+;	pop	rbp		; return a;
+	pop	rbx
+	ret			;} // move
 	
 
 	extern	empties
