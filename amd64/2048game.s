@@ -9,24 +9,24 @@ tilt_u	equ	0xfffe
 	
 	section	.data
 values:
-	db	"       ",0	;char values[] = {"       ",
-	db	"[   2] ",0	;                  "[   2] ",
-	db	"[   4] ",0	;                  "[   4] ",
-	db	"[   8] ",0	;                  "[   8] ",
-	db	"[  16] ",0	;                  "[  16] ",
-	db	"[  32] ",0	;                  "[  32] ",
-	db	"[  64] ",0	;                  "[  64] ",
-	db	"[ 128] ",0	;                  "[ 128] ",
-	db	"[ 256] ",0	;                  "[ 256] ",
-	db	"[ 512] ",0	;                  "[ 512] ",
-	db	"[1024] ",0	;                  "[1024] ",
-	db	"[2048] ",0	;                  "[2048] ",
-	db	"[2^12] ",0	;                  "[2^12] ",
-	db	"[2^13] ",0	;                  "[2^13] ",
-	db	"[2^14] ",0	;                  "[2^14] ",
-	db	"[2^15] ",0	;                  "[2^15] "};
+	db	"       ",0	;char const* values[] = {"       ",
+	db	"[   2] ",0	;                        "[   2] ",
+	db	"[   4] ",0	;                        "[   4] ",
+	db	"[   8] ",0	;                        "[   8] ",
+	db	"[  16] ",0	;                        "[  16] ",
+	db	"[  32] ",0	;                        "[  32] ",
+	db	"[  64] ",0	;                        "[  64] ",
+	db	"[ 128] ",0	;                        "[ 128] ",
+	db	"[ 256] ",0	;                        "[ 256] ",
+	db	"[ 512] ",0	;                        "[ 512] ",
+	db	"[1024] ",0	;                        "[1024] ",
+	db	"[2048] ",0	;                        "[2048] ",
+	db	"[2^12] ",0	;                        "[2^12] ",
+	db	"[2^13] ",0	;                        "[2^13] ",
+	db	"[2^14] ",0	;                        "[2^14] ",
+	db	"[2^15] ",0	;                        "[2^15] "};
 newrow:	
-	db	10,0		;char newrow[] = {'\n', '\0'};
+	db	10,0		;const char newrow[] = {'\n', '\0'};
 cout:
 	db	"%c",0
 strout:
@@ -86,45 +86,43 @@ move:
 	push	rbp		;register uint64_t move(register uint8_t di,
 	mov	rbp,rsp		;                       register uint64_t si) {
 	mov	rax,nybmask	; register uint64_t a = 0xf0f0f0f0f0f0f0f, c, d;
-	mov	rdx,rsi		; register uint32_t r[12];
+	mov	rdx,rsi		; register uint32_t r[4];
 	and	rdx,rax		; // lower two rows:
 	mov	rcx,rsi		; d = si & a;
 	shr	rcx,4		; // upper two rows:
 	and	rcx,rax		; c = (si >> 4) & a;
-	shld	r8,rcx,32	; r[8] = 0x00000000ffffffff & (rcx >> 32);// top
-	mov	r9,rcx		; r[9] = 0x00000000ffffffff & rcx;
-	shld	r10,rdx,32	; r[10] = 0x00000000ffffffff & (rdx >> 32);
-	mov	r11,rdx		; r[11] = 0x00000000ffffffff & rdx;       // bot
+	shld	r8,rcx,32	; r[0] = 0x00000000ffffffff & (rcx >> 32);// top
+	mov	r9,rcx		; r[1] = 0x00000000ffffffff & rcx;
+	shld	r10,rdx,32	; r[2] = 0x00000000ffffffff & (rdx >> 32);
+	mov	r11,rdx		; r[3] = 0x00000000ffffffff & rdx;       // bot
 	mov	rax,rsi		; a = si; // default return value: si unaltered
 	
 	cmp	di,tilt_r	; switch (di) {
-	jne	.Ll		;  case tilt_r: 
-	
-	bswap	r8d		;
-	bswap	r9d		;
-	bswap	r10d		;
-	bswap	r11d		;
-
+	jne	.Ll		;  case tilt_r: // perform a left-tilt but first
+	bswap	r8d		;   for (int i = 0; i < 4; i++) // flip columns
+	bswap	r9d		;    r[i] = (r[i] << 24) & 0xff000000 |
+	bswap	r10d		;           (r[i] << 8)  & 0x00ff0000 |
+	bswap	r11d		;           (r[i] >> 8)  & 0x0000ff00 |
 .Ll
-	tst	di,tilt_l&tilt_r;
-	jz	.Ld		;  case tilt_l: // first bias left   case tilt_l: // first bias left case tilt_l: // first bias left case tilt_l: // first bias left
+	test	di,tilt_l&tilt_r;           (r[i] >> 24) & 0x000000ff;
+	jz	.Ld		;  case tilt_l: // first bias left to remove 0s
 %assign	i 8
 %rep 4
-	mov	edx,r %+ i %+ d	;   for (int i = 8; i < 12; i++) { // each row
+	mov	edx,r %+ i %+ d	;   for (int i = 0; i < 4; i++) { // each row
 %assign j 0
 %rep 4
 	mov	ecx,edx		;    d = r[i] && 0xffffffff; // working row copy
 %rep 4-j
 	rol	ecx,8		;    for (int j = 0; j < 4; j++) { // each col
-	mov	al,cl		;     while (d & 0xff000000 == 0) {
-	xor	cl,cl		;      d |= (d & 0xffffffff) << 8;
-	and	al,0xff		;     }
+	mov	al,cl		;     if (  d & 0x00000000ff000000 == 0)
+	xor	cl,cl		;      d = (d & 0xffffffff00000000) | 
+	and	al,0xff		;         ((d & 0x00000000ffffffff) << 8);
 	cmovz	edx,ecx		;     d <<= 8; // preserve just-processed byte
 %endrep
 	shl	rdx,8		;    }
 %assign j j+1
 %endrep	
-	shr	rdx,32		;    r[i] = d;
+	shr	rdx,32		;    r[i] = d >> 32; // bias 32 bits right again
 	mov	r %+ i,rdx	;   }
 %assign i i+1
 %endrep
@@ -150,28 +148,37 @@ move:
 	shl	r %+ i %+ d,cl	;    }
 %assign j j+1
 %endrep
+	shr	r %+ i %+ d,cl	;   r[i] >>= 32; // bias 32 bits right, now done
 %assign i i+1
 %endrep
-	cmp	di,tilt_l	;   if (di != tilt_l) {
-	je	.Lmoved		;
-	bswap	r8d		;
-	bswap	r9d		;
-	bswap	r10d		;
-	bswap	r11d		;   }
-
+	cmp	di,tilt_r	;   if (di == tilt_l)
+	jne	.Lmoved		;    for (int i = 0; i < 4; i++) // de-flip cols
+	bswap	r8d		;     r[i] = (r[i] << 24) & 0xff000000 |
+	bswap	r9d		;            (r[i] << 8)  & 0x00ff0000 |
+	bswap	r10d		;            (r[i] >> 8)  & 0x0000ff00 |
+	bswap	r11d		;            (r[i] >> 24) & 0x000000ff;
 	jmp	.Lmoved		;   break;    
-.Lr:
-	cmp	edi,tilt_r	;
-	jne	.Ld		;  case tilt_r:
-
 .Ld:
-	cmp	edi,tilt_d	; } switch (di) {
-	jne	.Lu		;  case tilt_d:
-	
+	cmp	di,tilt_d	;
+	jne	.Lu		;  case tilt_d: // perform an up-tilt with rows
+	shld	r11,rcx,32	;   r[3] = 0x00000000ffffffff & (rcx >> 32);
+	mov	r10,rcx		;   r[2] = 0x00000000ffffffff & rcx;
+	shld	r9,rdx,32	;   r[1] = 0x00000000ffffffff & (rdx >> 32);
+	mov	r8,rdx		;   r[0] = 0x00000000ffffffff & rdx; // reversed
 .Lu:
-	cmp	rdi,tilt_u	;
+	cmp	di,tilt_u	;
 	jne	.Lbad		;  case tilt_u:
 
+	shl	r8d,4		;
+	or	r8d,r9d		;
+	shl	r8,32		;
+	shl	r10d,4		;
+	or	r10d,r11d	;
+	mov	rax,r8		;
+	or	eax,r10d	;
+
+
+	
 .Lmoved:
 	shl	r8d,4		;
 	or	r8d,r9d		;
