@@ -166,16 +166,16 @@ move:
 	mov	r10,rcx		;   r[2] = 0x00000000ffffffff & rcx;
 	shld	r11,rcx,32	;   r[3] = 0x00000000ffffffff & (rcx >> 32);
 .Lu:
+	;; default:
 
-
-
+	;; now implement the algorithm tilting up
 
 
 
 
 
 	cmp	di,tilt_d	;
-	jne	.Lbad		;   if (di == tilt_) {
+	jne	.Lbad		;   if (di == tilt_r) {
 	shl	r11d,4		;
 	or	r11d,r10d	;    r11 = (r11 << 4) | r10;
 	shl	r11,32		;
@@ -187,7 +187,7 @@ move:
 	
 .Lmoved:
 	shl	r8d,4		;   }
-	or	r8d,r9d		; }
+	or	r8d,r9d		; } // re-assemble new r8-r11 grid back into rax
 	shl	r8,32		; r8 = (r8 << 4) | r9;
 	shl	r10d,4		;
 	or	r10d,r11d	; r10 = (r10 << 4) | r11;
