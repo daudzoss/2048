@@ -174,39 +174,25 @@ move:
 	shr	r %+ i %+ d,cl	;   r[i] >>= 32; // bias 32 bits right, now done
 %assign i i+1
 %endrep
-	cmp	di,tilt_r	;   if (di == tilt_r) {
+	cmp	di,tilt_r	;   if (di == tilt_r)
 	jne	.Lmoved		;    for (int i = 0; i < 4; i++) // de-flip cols
 	bswap	r8d		;     r[i] = (r[i] << 24) & 0xff000000 |
 	bswap	r9d		;            (r[i] << 8)  & 0x00ff0000 |
 	bswap	r10d		;            (r[i] >> 8)  & 0x0000ff00 |
 	bswap	r11d		;            (r[i] >> 24) & 0x000000ff;
-	jmp	.Lmoved		;    break;    
-
-	cmp	di,tilt_d	;   }
-	jne	.Lbad		;   if (di == tilt_r) {
-	shl	r11d,4		;
-	or	r11d,r10d	;    r[3] = (r[3] << 4) | r[2];
-	shl	r11,32		;
-	shl	r9d,4		;
-	or	r9d,r8d		;    r[1] = (r[1] << 4) | r[0];
-	mov	rax,r11		;
-	or	eax,r9d		;    a = (r[3] << 32) | r[1];
-	jmp	.Lbad		;    return a;
-	
-.Lmoved:
-	shl	r8d,4		;   }
-	or	r8d,r9d		; } // re-assemble new r8-r11 grid back into rax
-	shl	r8,32		; r8 = (r8 << 4) | r9;
+.Lmoved
+	shl	r8d,4		; } // convert 4x8-byte grid back to 16 nybbles
+	or	r8d,r9d		; // FIXME: unverified
+	shl	r8,32		; r[0] = (r[0] << 4) | r[1];
 	shl	r10d,4		;
-	or	r10d,r11d	; r10 = (r10 << 4) | r11;
+	or	r10d,r11d	; r[2] = (r[2] << 4) | r[3];
 	mov	rax,r8		;
-	or	eax,r10d	; a = (r8 << 32) | r10;
+	or	eax,r10d	; a = (r[0] << 32) | r[2];
 
 .Lbad:
-;	mov	rsp,rbp		; 
-;	pop	rbp		; return a;
-	pop	rbx
-	ret			;} // move
+	mov	rsp,rbp		; 
+	pop	rbp		; return a;
+	ret			;} // move()
 	
 
 	extern	empties
