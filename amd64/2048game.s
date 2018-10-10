@@ -114,9 +114,9 @@ move:
 	mov	ecx,edx		;    d = r[i] && 0xffffffff; // working row copy
 %rep 4-j
 	rol	ecx,8		;    for (int j = 0; j < 4; j++) { // each col
-	mov	al,cl		;     if (  d & 0x00000000ff000000 == 0)
-	xor	cl,cl		;      d = (d & 0xffffffff00000000) | 
-	and	al,0xff		;         ((d & 0x00000000ffffffff) << 8);
+	mov	al,cl		;     for (int k = 0; k < 4-j; k++) // up to 4x
+	xor	cl,cl		;      if (d & 0x00000000ff000000 == 0) // slide
+	and	al,0xff		;       d = ((d>>32)<<32) | ((d&0xffffffff)<<8);
 	cmovz	edx,ecx		;     d <<= 8; // preserve just-processed byte
 %endrep
 	shl	rdx,8		;    }
