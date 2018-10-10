@@ -161,32 +161,40 @@ move:
 .Ld:
 	cmp	di,tilt_d	;
 	jne	.Lu		;  case tilt_d: // perform an up-tilt with rows
-	shld	r11,rcx,32	;   r[3] = 0x00000000ffffffff & (rcx >> 32);
-	mov	r10,rcx		;   r[2] = 0x00000000ffffffff & rcx;
-	shld	r9,rdx,32	;   r[1] = 0x00000000ffffffff & (rdx >> 32);
 	mov	r8,rdx		;   r[0] = 0x00000000ffffffff & rdx; // reversed
+	shld	r9,rdx,32	;   r[1] = 0x00000000ffffffff & (rdx >> 32);
+	mov	r10,rcx		;   r[2] = 0x00000000ffffffff & rcx;
+	shld	r11,rcx,32	;   r[3] = 0x00000000ffffffff & (rcx >> 32);
 .Lu:
 	cmp	di,tilt_u	;
 	jne	.Lbad		;  case tilt_u:
 
-	shl	r8d,4		;
-	or	r8d,r9d		;
-	shl	r8,32		;
-	shl	r10d,4		;
-	or	r10d,r11d	;
-	mov	rax,r8		;
-	or	eax,r10d	;
 
 
+
+
+
+
+
+
+
+	shl	r11d,4		;
+	or	r11d,r10d	;  r11 = (r11 << 4) | r10;
+	shl	r11,32		;
+	shl	r9d,4		;
+	or	r9d,r8d		;  r9 = (r9 << 4) | r8;
+	mov	rax,r11		;
+	or	eax,r9d		;
+	jmp	.Lbad		;  a = (r11 << 32) | r9;
 	
 .Lmoved:
 	shl	r8d,4		;
-	or	r8d,r9d		;
+	or	r8d,r9d		;  r8 = (r8 << 4) | r9;
 	shl	r8,32		;
 	shl	r10d,4		;
-	or	r10d,r11d	;
+	or	r10d,r11d	;  r10 = (r10 << 4) | r11;
 	mov	rax,r8		;
-	or	eax,r10d	;
+	or	eax,r10d	;  a = (r8 << 32) | r10;
 
 .Lbad:
 	mov	rsp,rbp		; }
