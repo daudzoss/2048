@@ -1,25 +1,26 @@
 %include "macrodef.s"
 
-nybmask	equ	0x0f0f0f0f0f0f0f0f
-maindia	equ	0xf0000f0000f0000f
-tri0top	equ	0x34
-tri0bot	equ	0x1c
-tri1top	equ	0x2c
-tri1bot	equ	0x38
-tri2top	equ	0x0c
-tri2bot	equ	0x30
-tri3top	equ	0x24
-tri3bot	equ	0x18
-tri4top	equ	0x04
-tri4bot	equ	0x10
-tri5top	equ	0x20
-tri5bot	equ	0x08
-
-tilt_r	equ	0x0001
-tilt_l	equ	0xffff
-tilt_d	equ	0x0002
-tilt_u	equ	0xfffe
+nybmask	equ	0x0f0f0f0f0f0f0f0f ;const nybmask = 0x0f0f0f0f0f0f0f0f;
+maindia	equ	0xf0000f0000f0000f ;const maindia = 0xf0000f0000f0000f;
 	
+tri0top	equ	0x34		;const tri_top[] = { 0x34,   // bit position
+tri0bot	equ	0x1c		;                    0x2c,   // in quadword:
+tri1top	equ	0x2c		;                    0x0c,   // * 0 2 5
+tri1bot	equ	0x38		;                    0x24,   // * * 1 4
+tri2top	equ	0x0c		;                    0x04,   // * * * 3
+tri2bot	equ	0x30		;                    0x20 }; // * * * *
+tri3top	equ	0x24		;const tri_bot[] = { 0x1c,   // bit position
+tri3bot	equ	0x18		;                    0x38,   // in quadword:
+tri4top	equ	0x04		;                    0x30,   // * * * *
+tri4bot	equ	0x10		;                    0x18,   // 0 * * *
+tri5top	equ	0x20		;                    0x10,   // 2 1 * *
+tri5bot	equ	0x08		;                    0x08 }; // 5 4 3 *
+
+tilt_r	equ	0x0001		;enum tiltdir { tilt_u = -2,   // bit 0 clear
+tilt_l	equ	0xffff		;               tilt_l = -1,   // bit 0 set
+tilt_d	equ	0x0002		;               tilt_r = +1,   // bit 0 set
+tilt_u	equ	0xfffe		;               tilt_d = +2 }; // bit 0 clear
+
 	section	.data
 values:
 	db	"       ",0	;char const* values[] = {"       ",
@@ -39,11 +40,11 @@ values:
 	db	"[2^14] ",0	;                        "[2^14] ",
 	db	"[2^15] ",0	;                        "[2^15] "};
 newrow:	
-	db	10,0		;const char newrow[] = {'\n', '\0'};
+	db	10,0		;const char newrow[] = "\n";
 cout:
-	db	"%c",0
+	db	"%c",0		;const char cout[] = "%c";
 strout:
-	db	"%s",0
+	db	"%s",0		;const char strout[] = "%s";
 	
 	section	.text
 	global	print4x4
@@ -101,13 +102,14 @@ transpo:
 	and	rax,rdi		; for (int i = 0; i < 6; i++) {
 %assign	i 0
 %rep 6
-%assign	upp tri %+ i %+ top
-%assign low tri %+ i %+ bot
-	bextr	rdx,rdi,1024|upp;  register uint64_t d;
-	shl	rdx,low 	;  d = di & ((0xf<<(tri_top[i])) >> tri_top[i]);
+%assign	width 4<<2
+%assign	upp width|(tri %+ i %+ top)
+%assign low width|(tri %+ i %+ bot)
+	bextr	rdx,rdi,upp	;  register uint64_t d;
+	shl	rdx,0x3f & low 	;  d = di & ((0xf<<(tri_top[i])) >> tri_top[i]);
 	or	rax,rdx		;  a |= d << tri_bot[i];
-	bextr	rdx,rdi,1024|low;
-	shl	rdx,upp		;  d = di & ((0xf<<(tri_bot[i])) >> tri_bot[i]);
+	bextr	rdx,rdi,low	;
+	shl	rdx,0x3f & upp	;  d = di & ((0xf<<(tri_bot[i])) >> tri_bot[i]);
 	or	rax,rdx		;  a |= d << tri_top[i];
 %assign	i i+1
 %endrep
@@ -115,6 +117,28 @@ transpo:
 	pop	rbp		; return a;
 	ret			;}
 	
+gamewon:
+	push 	rbp		;register uint64_t gamewon(register uint64_t di,
+	mov	rbp,rsp		;                          register uint64_t si)
+	xor	rax,rax		;{register uint64_t a = 0;
+	and	rdi,0xf		; di &= 0x000000000000000f;//e.g. gamewon(11,x);
+	mov	rcx,0xf		; for (int i = 0; i < 64; i += 4) {
+%assign	i 0
+%rep 16
+	mov	rdx,rcx		;
+	and	rdx,rsi		;  register uint64_t c = (0xf << i);
+	shr	rdx,i		;
+	xor	rsp,rsp		;
+	cmp	rdx,rdi		;
+	cmovge	rsp,rcx		;
+	or	rax,rsp		;  a |= (si & c >= di << i) ? c : 0;
+	shl	rcx,4		; }
+%assign i i+4
+%endrep
+	mov	rsp,rbp		;
+	pop	rbp		; return a;
+	ret			;}
+
 	global	move
 move:	
 	push	rbp		;register uint64_t move(register uint8_t di,
