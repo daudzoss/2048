@@ -1,7 +1,20 @@
 %include "macrodef.s"
 
 nybmask	equ	0x0f0f0f0f0f0f0f0f
-	
+maindia	equ	0xf0000f0000f0000f
+tri0top	equ	0x34
+tri0bot	equ	0x1c
+tri1top	equ	0x2c
+tri1bot	equ	0x38
+tri2top	equ	0x0c
+tri2bot	equ	0x30
+tri3top	equ	0x24
+tri3bot	equ	0x18
+tri4top	equ	0x04
+tri4bot	equ	0x10
+tri5top	equ	0x20
+tri5bot	equ	0x08
+
 tilt_r	equ	0x0001
 tilt_l	equ	0xffff
 tilt_d	equ	0x0002
@@ -81,13 +94,34 @@ print4x4:
 	pop	rbp		;
 	ret			;} // print4x4()
 
+transpo:
+	push	rbp		;register uint64_t transpo(register uint64_t di)
+	mov	rbp,rsp		;{
+	mov	rax,maindia	; register uint64_t a = 0xf0000f0000f0000f & di;
+	and	rax,rdi		; for (int i = 0; i < 6; i++) {
+%assign	i 0
+%rep 6
+%assign	upp tri %+ i %+ top
+%assign low tri %+ i %+ bot
+	bextr	rdx,rdi,1024|upp;  register uint64_t d;
+	shl	rdx,low 	;  d = di & ((0xf<<(tri_top[i])) >> tri_top[i]);
+	or	rax,rdx		;  a |= d << tri_bot[i];
+	bextr	rdx,rdi,1024|low;
+	shl	rdx,upp		;  d = di & ((0xf<<(tri_bot[i])) >> tri_bot[i]);
+	or	rax,rdx		;  a |= d << tri_top[i];
+%assign	i i+1
+%endrep
+	mov	rsp,rbp		; }
+	pop	rbp		; return a;
+	ret			;}
+	
 	global	move
 move:	
 	push	rbp		;register uint64_t move(register uint8_t di,
 	mov	rbp,rsp		;                       register uint64_t si) {
 	mov	rax,rsi		; a = si; // default return value: si unaltered
 	
-.Ld
+.Ld:
 	cmp	di,tilt_d	; switch (di) {
 	jne	.Lu		;  case tilt_d:
 	mov	rdi,rsi		;
@@ -98,7 +132,7 @@ move:
 	mov	rdi,rax		;
 	call	transpo		;   return transpo(move(tilt_r, transpo(si)));
 	jmp	.Lbad		;
-.Lu
+.Lu:
 	cmp	di,tilt_u	;  case tilt_u:
 	jne	.Lr		;
 	mov	rdi,rsi		;
@@ -109,14 +143,14 @@ move:
 	mov	rdi,rax		;
 	call	transpo		;
 	jmp	.Lbad		;   return transpo(move(tilt_l, transpo(si)));
-.Lr
+.Lr:
 	cmp	di,tilt_r	;
 	jne	.Ll		;  case tilt_r: // perform a left-tilt but first
 	bswap	r8d		;   for (int i = 0; i < 4; i++) // flip columns
 	bswap	r9d		;    r[i] = (r[i] << 24) & 0xff000000 |
 	bswap	r10d		;           (r[i] << 8)  & 0x00ff0000 |
 	bswap	r11d		;           (r[i] >> 8)  & 0x0000ff00 |
-.Ll
+.Ll:
 	test	di,tilt_l&tilt_r;           (r[i] >> 24) & 0x000000ff;
 	jz	.Ld		;  case tilt_l: // first bias left to remove 0s
 	mov	rax,nybmask	;   register uint64_t a = 0xf0f0f0f0f0f0f0f,c,d;
@@ -180,8 +214,8 @@ move:
 	bswap	r9d		;            (r[i] << 8)  & 0x00ff0000 |
 	bswap	r10d		;            (r[i] >> 8)  & 0x0000ff00 |
 	bswap	r11d		;            (r[i] >> 24) & 0x000000ff;
-.Lmoved
-	shl	r8d,4		; } // convert 4x8-byte grid back to 16 nybbles
+.Lmoved:
+	shl	r8d,4		; } // convert 4x4-byte grid back to 16 nybbles
 	or	r8d,r9d		; // FIXME: unverified
 	shl	r8,32		; r[0] = (r[0] << 4) | r[1];
 	shl	r10d,4		;
