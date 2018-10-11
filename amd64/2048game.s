@@ -121,17 +121,17 @@ gamewon:
 	push 	rbp		;register uint64_t gamewon(register uint64_t di,
 	mov	rbp,rsp		;                          register uint64_t si)
 	xor	rax,rax		;{register uint64_t a = 0;
-	and	rdi,0xf		; di &= 0x000000000000000f;//e.g. gamewon(11,x);
 	mov	rcx,0xf		; for (int i = 0; i < 64; i += 4) {
+	and	rdi,rcx		; di &= 0x000000000000000f;//e.g. gamewon(11,x);
 %assign	i 0
 %rep 16
 	mov	rdx,rcx		;
 	and	rdx,rsi		;  register uint64_t c = (0xf << i);
 	shr	rdx,i		;
-	xor	rsp,rsp		;
+	xor	r8,r8		;
 	cmp	rdx,rdi		;
-	cmovge	rsp,rcx		;
-	or	rax,rsp		;  a |= (si & c >= di << i) ? c : 0;
+	cmovge	r8,rcx		;
+	or	rax,r8		;  a |= (si & c >= di << i) ? c : 0;
 	shl	rcx,4		; }
 %assign i i+4
 %endrep
