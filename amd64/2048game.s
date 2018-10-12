@@ -150,8 +150,8 @@ move:
 	jne	.Lu		;  case tilt_d:
 	mov	rdi,rsi		;
 	call	transpo		;
-	mov	si,tilt_r	;
-	mov	rdi,rax		;
+	mov	di,tilt_r	;
+	mov	rsi,rax		;
 	call	move		;
 	mov	rdi,rax		;
 	call	transpo		;   return transpo(move(tilt_r, transpo(si)));
@@ -161,8 +161,8 @@ move:
 	jne	.Lr		;
 	mov	rdi,rsi		;
 	call	transpo		;
-	mov	si,tilt_l	;
-	mov	rdi,rax		;
+	mov	di,tilt_l	;
+	mov	rsi,rax		;
 	call	move		;
 	mov	rdi,rax		;
 	call	transpo		;
@@ -176,7 +176,7 @@ move:
 	bswap	r11d		;           (r[i] >> 8)  & 0x0000ff00 |
 .Ll:
 	test	di,tilt_l&tilt_r;           (r[i] >> 24) & 0x000000ff;
-	jz	.Ld		;  case tilt_l: // first bias left to remove 0s
+	jz	.Lbad		;  case tilt_l: // first bias left to remove 0s
 	mov	rax,nybmask	;   register uint64_t a = 0xf0f0f0f0f0f0f0f,c,d;
 	mov	rdx,rsi		;   register uint32_t r[4];
 	and	rdx,rax		;   // lower two rows:
