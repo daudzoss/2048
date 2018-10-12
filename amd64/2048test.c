@@ -106,8 +106,8 @@ void win_test(uint64_t exponent) {
 }
 
 void main(void) {
-  drop_test();
-  win_test(logbase2(2048));
   for (int8_t i = -3; i <= +3; i++)
     dir_test(i);
+  drop_test();
+  win_test(logbase2(2048));
 }

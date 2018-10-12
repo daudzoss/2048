@@ -115,7 +115,7 @@ transpo:
 %endrep
 	mov	rsp,rbp		; }
 	pop	rbp		; return a;
-	ret			;}
+	ret			;} // transpo()
 	
 	global	gamewon
 gamewon:
@@ -138,7 +138,7 @@ gamewon:
 %endrep
 	mov	rsp,rbp		;
 	pop	rbp		; return a;
-	ret			;}
+	ret			;} // gamewon()
 
 	global	move
 move:	
@@ -297,5 +297,5 @@ anymove:
 	mov	rbx,[rsp+0]	;  return a; // tilting up results in change
 	mov	rsp,rbp		;
 	pop	rbp		; return 0; // board is seized up, no moves left
-	ret			;}
+	ret			;} // anymove()
 
