@@ -1,17 +1,28 @@
-ASM = yasm
-ASMFLAGS = -felf64 -gdwarf2
+AS = yasm
+ASFLAGS = -felf64 -gdwarf2
 
-2048test : 2048test.o 2048drop.o 2048game.o
-	gcc 2048test.o 2048drop.o 2048game.o -o 2048
+CC = gcc
+CCFLAGS = -g -c -std=c99
 
-2048test.o : 2048test.c
-	gcc -g -c 2048test.c
+LD = gcc
+LDFLAGS = 
 
-2048drop.o : 2048drop.s macrodef.s Makefile
-	$(ASM) $(ASMFLAGS) -l2048drop.lst 2048drop.s
+ME = Makefile
 
-2048game.o : 2048game.s macrodef.s Makefile
-	$(ASM) $(ASMFLAGS) -l2048game.lst 2048game.s
+2048test : 2048test.o 2048drop.o 2048game.o $(ME)
+	$(LD) 2048test.o 2048drop.o 2048game.o logbase2.o -o 2048
+
+2048test.o : 2048test.c $(ME)
+	$(CC) $(CCFLAGS) 2048test.c
+
+2048drop.o : 2048drop.s macrodef.s $(ME)
+	$(AS) $(ASFLAGS) -l2048drop.lst 2048drop.s
+
+2048game.o : 2048game.s macrodef.s $(ME)
+	$(AS) $(ASFLAGS) -l2048game.lst 2048game.s
+
+logbase2.o : logbase2.s $(ME)
+	$(AS) $(ASFLAGS) -llogbase2.lst logbase2.s
 
 clean :
-	rm 2048*.o
+	rm *.o

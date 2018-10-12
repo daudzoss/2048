@@ -1,5 +1,5 @@
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 
 uint64_t gridempty = 0x0000000000000000;
 uint64_t lastempty = 0x123456789abcdef0;
@@ -10,6 +10,10 @@ uint64_t oddsempty = 0x1020304050607080;
 extern void print4x4(uint64_t);
 
 extern uint64_t empties(uint64_t);
+
+extern uint64_t gamewon(uint64_t, uint64_t);
+
+extern uint64_t logbase2(uint64_t);
 
 uint64_t print_em(uint64_t grid) {
   uint64_t em = empties(grid);
@@ -46,10 +50,8 @@ void print_test(void) {
   print_em(oddsempty);
 }
 
-void move_test(void) {
-}
-
 extern uint64_t dropnew(uint64_t);
+extern uint64_t move(int8_t, uint64_t);
 
 void printnew(uint64_t old) {
   uint64_t new = dropnew(old);
@@ -60,13 +62,23 @@ void printnew(uint64_t old) {
   printf("\n\n");
 }
 
-void printmov(uint8_t mov, uint64_t old) {
+void printmov(int8_t mov, uint64_t old) {
+  static char* dirname[] = {"up", "left", "flat", "right", "down"};
   uint64_t new = move(mov, old);
+  uint64_t i = mov + 2;
 
   print4x4(old);
-  printf("pushing in direction %d:\n", mov);
+  printf("tilted %s (%ld):\n", (i >= 0 && i < 6) ? dirname[i] : "INVALID", mov);
   print4x4(new);
   printf("\n\n");
+}
+
+void printwon(uint64_t exponent, uint64_t grid) {
+  print4x4(grid);
+  if (gamewon(exponent, grid))
+    printf("WINNER!");
+  else
+    printf("not won");
 }
 
 void drop_test(void) {
@@ -77,16 +89,26 @@ void drop_test(void) {
   printnew(oddsempty);
 }
 
-void left_test(void) {
-  printmov(2, gridempty);
-  printmov(2, lastempty);
-  printmov(2, outputseq);
-  printmov(2, noneempty);
-  printmov(2, oddsempty);
+void dir_test(int8_t dir) {
+  printmov(dir, gridempty);
+  printmov(dir, lastempty);
+  printmov(dir, outputseq);
+  printmov(dir, noneempty);
+  printmov(dir, oddsempty);
+}
+
+void win_test(uint64_t exponent) {
+  printwon(exponent, gridempty);
+  printwon(exponent, lastempty);
+  printwon(exponent, outputseq);
+  printwon(exponent, noneempty);
+  printwon(exponent, oddsempty);
 }
 
 void main(void) {
-  print_test();
+  dir_test(3);
   drop_test();
-  left_test();
+  win_test(logbase2(2048));
+  for (int8_t i = -3; i <= +3; i++)
+    dir_test(i);
 }

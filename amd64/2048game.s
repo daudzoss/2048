@@ -117,6 +117,7 @@ transpo:
 	pop	rbp		; return a;
 	ret			;}
 	
+	global	gamewon
 gamewon:
 	push 	rbp		;register uint64_t gamewon(register uint64_t di,
 	mov	rbp,rsp		;                          register uint64_t si)
