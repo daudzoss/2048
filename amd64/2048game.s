@@ -175,9 +175,11 @@ move:
 	bswap	r9d		;    r[i] = (r[i] << 24) & 0xff000000 |
 	bswap	r10d		;           (r[i] << 8)  & 0x00ff0000 |
 	bswap	r11d		;           (r[i] >> 8)  & 0x0000ff00 |
+	jmp	.L_l_r		;           (r[i] >> 24) & 0x000000ff;
 .Ll:
-	test	di,tilt_l&tilt_r;           (r[i] >> 24) & 0x000000ff;
-	jz	.Lbad		;  case tilt_l: // first bias left to remove 0s
+	cmp	di,tilt_l	;
+	jne	.Lbad		;  case tilt_l: // first bias left to remove 0s
+.L_l_r
 	mov	rax,nybmask	;   register uint64_t a = 0xf0f0f0f0f0f0f0f,c,d;
 	mov	rdx,rsi		;   register uint32_t r[4];
 	and	rdx,rax		;   // lower two rows:
