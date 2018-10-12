@@ -68,7 +68,7 @@ void printmov(int8_t mov, uint64_t old) {
   uint64_t i = mov + 2;
 
   print4x4(old);
-  printf("tilted %s (%ld):\n", (i >= 0 && i < 6) ? dirname[i] : "INVALID", mov);
+  printf("tilted %s (%d):\n", (i >= 0 && i < 5) ? dirname[i] : "INVALID", mov);
   print4x4(new);
   printf("\n\n");
 }
@@ -76,9 +76,9 @@ void printmov(int8_t mov, uint64_t old) {
 void printwon(uint64_t exponent, uint64_t grid) {
   print4x4(grid);
   if (gamewon(exponent, grid))
-    printf("WINNER!");
+    printf("WINNER!\n");
   else
-    printf("not won");
+    printf("not won\n");
 }
 
 void drop_test(void) {
@@ -106,7 +106,6 @@ void win_test(uint64_t exponent) {
 }
 
 void main(void) {
-  dir_test(3);
   drop_test();
   win_test(logbase2(2048));
   for (int8_t i = -3; i <= +3; i++)

@@ -146,8 +146,8 @@ move:
 	mov	rbp,rsp		;                       register uint64_t si) {
 	mov	rax,rsi		; a = si; // default return value: si unaltered
 	
-.Ld:
-	cmp	di,tilt_d	; switch (di) {
+	cmp	di,tilt_d	; if (di > tilt_d) return a; // caused SIGSEGV
+	jg	.Lbad		; switch (di) {
 	jne	.Lu		;  case tilt_d:
 	mov	rdi,rsi		;
 	call	transpo		;
