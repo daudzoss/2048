@@ -90,7 +90,7 @@ void drop_test(void) {
 }
 
 void dir_test(int8_t dir) {
-  //  printmov(dir, gridempty);
+  printmov(dir, gridempty);
   printmov(dir, lastempty);
   printmov(dir, outputseq);
   printmov(dir, noneempty);
@@ -106,8 +106,9 @@ void win_test(uint64_t exponent) {
 }
 
 void main(void) {
-  for (int8_t i = -1; i <= +3; i++)
-    dir_test(i);
-  drop_test();
-  win_test(logbase2(2048));
+  printmov(2, oddsempty);
+//  for (int8_t i = -1; i <= +3; i++)
+//    dir_test(i);
+//  drop_test();
+//  win_test(logbase2(2048));
 }
