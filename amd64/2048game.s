@@ -102,7 +102,7 @@ transpo:
 	and	rax,rdi		; for (int i = 0; i < 6; i++) {
 %assign	i 0
 %rep 6
-%assign	width 4<<2
+%assign	width 4<<8
 %assign	upp width|(tri %+ i %+ top)
 %assign low width|(tri %+ i %+ bot)
 	bextr	rdx,rdi,upp	;  register uint64_t d;
