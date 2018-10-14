@@ -212,25 +212,33 @@ move:
 %assign i i+1
 %endrep
 	
-	mov	esi,0xff000000	;   for (int i = 8; i < 12; i++) // each row
+	mov rsi,0xffffffffff000000 ;   for (int i = 8; i < 12; i++) // each row
 %assign i 8
 %rep 4
 %assign j 0
 %rep 3
-	mov	eax,r %+ i %+ d	;    for (int j = 0; j < 3; j++) { // left 3 col
+	mov	rax,r %+ i	;    for (int j = 0; j < 3; j++) { // left 3 col
+	sub	rax,rsi		;
 	mov	ecx,esi		;
-	and	ecx,eax		;     c = r[i] & 0xff000000; // leftmost byte
+	and	ecx,r %+ i %+ d	;     c = r[i] & 0xff000000; // leftmost byte
 	mov	edx,esi		;
 	shr	edx,8		;
-	and	edx,eax		;     d = r[i] & 0x00ff0000; // next byte right
-	shl	edx,8		;
-	sub	eax,esi		;     if (c == d << 8) {// coalesce them into 1,
+	and	edx,r %+ i %+ d	;     d = r[i] & 0x00ff0000; // next byte right
+	cmovz	rax,r %+ i	;
+	shl	edx,8		;     if (c == d << 8) {// coalesce them into 1,
 	xor	ecx,edx		;      r[i] += 0x0000000100000000; // incr power
-	cmovz	r %+ i %+ d,eax	;      r[i] = (0xffffffff00000000 & r[i]) |
+	cmovz	r %+ i,rax	;      r[i] = (0xffffffff00000000 & r[i]) |
 	setz	cl		;            ((0x0000000000ffffff & r[i]) << 8);
-	shl	r %+ i,8 ;[sic]	;     }
-	shl	cl,3		;     r[i] <<= 8;// preserve this processed byte
-	shl	r %+ i %+ d,cl	;    }
+	and	edx,esi		;
+	setnz	dl		;
+	and	cl,dl		;     }
+	shl	cl,3		;
+	shl	r %+ i,8	;     r[i] <<= 8;// preserve this processed byte
+	mov	eax,r %+ i %+ d	;
+	shl	eax,cl		;
+	shl	rax,32		;
+	shr	r %+ i,32	;
+	shld	r %+ i,rax,32	;    }
 %assign j j+1
 %endrep
 	shr	r %+ i,24;[sic]	;   r[i] >>= 24; // bias into low 32 bits, done
@@ -243,17 +251,17 @@ move:
 	bswap	r10d		;            (r[i] >> 8)  & 0x0000ff00 |
 	bswap	r11d		;            (r[i] >> 24) & 0x000000ff;
 .Lmoved:
-	shl	r8d,4		; } // convert 4x4-byte grid back to 16 nybbles
-	or	r8d,r9d		; // FIXME: unverified
-	shl	r8,32		; r[0] = (r[0] << 4) | r[1];
-	shl	r10d,4		;
-	or	r10d,r11d	; r[2] = (r[2] << 4) | r[3];
+	shl	r8d,4		;   // convert 4x4-byte grid back to 16 nybbles
+	or	r8d,r10d	;
+	shl	r8,32		;   r[0] = (r[0] << 4) | r[2];
+	shl	r9d,4		;
+	or	r9d,r11d	;   r[1] = (r[1] << 4) | r[3];
 	mov	rax,r8		;
-	or	eax,r10d	; a = (r[0] << 32) | r[2];
+	or	rax,r9		;   a = (r[0] << 32) | r[1];
 
 .Lbad:
-	mov	rsp,rbp		; 
-	pop	rbp		; return a;
+	mov	rsp,rbp		;   return a; 
+	pop	rbp		; }
 	ret			;} // move()
 	
 
