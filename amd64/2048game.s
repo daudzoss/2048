@@ -1,7 +1,7 @@
 %include "macrodef.s"
 
-nybmask	equ	0x0f0f0f0f0f0f0f0f ;const nybmask = 0x0f0f0f0f0f0f0f0f;
-maindia	equ	0xf0000f0000f0000f ;const maindia = 0xf0000f0000f0000f;
+nybmask	equ  0x0f0f0f0f0f0f0f0f	;const nybmask = 0x0f0f0f0f0f0f0f0f;
+maindia	equ  0xf0000f0000f0000f	;const maindia = 0xf0000f0000f0000f;
 	
 tri0top	equ	0x34		;const tri_top[] = { 0x34,   // bit position
 tri0bot	equ	0x1c		;                    0x2c,   // in quadword:
@@ -73,7 +73,7 @@ print4x4:
 	mov	r12,rsi		;
 	lea	rdi,[rel values];
 	lea	rdi,[rdi+8*rax]	;
-	mov	al,0		;
+	xor	al,al		;
 	call	printf		;   printf("%s", values[si[i*4+j]]);
 	mov	rsi,r12		;
 	mov	cl,0xff		;
@@ -83,7 +83,7 @@ print4x4:
 	jnz	.L2print4x4	;  }
 	mov	r12,rsi		;
 	lea	rdi,[rel newrow];
-	mov	al,0		;
+	xor	al,al		;
 	call	printf		;  printf("%c", '\n');
 	mov	rsi,r12		;
 	lea	rsi,[rsi+4]	;
@@ -192,22 +192,25 @@ move:
 	mov	r11,rdx		;   r[3] = 0x00000000ffffffff & rdx;
 %assign	i 8
 %rep 4
+	printAnrCD i
 	mov	edx,r %+ i %+ d	;   for (int i = 0; i < 4; i++) { // each row
 %assign j 0
 %rep 4
-	mov	ecx,edx		;    d = r[i] && 0xffffffff; // working row copy
-%rep 4-j
-	rol	ecx,8		;    for (int j = 0; j < 4; j++) { // each col
-	mov	al,cl		;     for (int k = 0; k < 4-j; k++) // up to 4x
-	xor	cl,cl		;      if (d & 0x00000000ff000000 == 0) // slide
-	and	al,0xff		;       d = ((d>>32)<<32) | ((d&0xffffffff)<<8);
-	cmovz	edx,ecx		;     d <<= 8; // preserve just-processed byte
+	mov	ecx,edx		;    d = r[i] & 0xffffffff; // working row copy
+%rep 3-j
+	shld	rcx,rdx,32	;    for (int j = 0; j < 4; j++) { // each col
+	ror	rcx,32		;     for (int k = 0; k < 4-j; k++) // up to 4x
+	rol	ecx,8		;      if (d & 0x00000000ff000000 == 0) // slide
+	or	cl,0		;       d = ((d>>32)<<32) | ((d&0xffffffff)<<8);
+	cmovz	rdx,rcx		;     d <<= 8; // preserve just-processed byte
 %endrep
 	shl	rdx,8		;    }
+
 %assign j j+1
 %endrep	
 	shr	rdx,32		;    r[i] = d >> 32; // bias 32 bits right again
 	mov	r %+ i,rdx	;   }
+	printAnrCD i
 %assign i i+1
 %endrep
 	
@@ -218,21 +221,21 @@ move:
 %rep 3
 	mov	eax,r %+ i %+ d	;    for (int j = 0; j < 3; j++) { // left 3 col
 	mov	ecx,esi		;
-	and	ecx,eax		;
-	shr	ecx,8		;     c = (r[i]>>24) & 0xff; // leftmost byte
+	and	ecx,eax		;     c = r[i] & 0xff000000; // leftmost byte
 	mov	edx,esi		;
 	shr	edx,8		;
-	and	edx,eax		;     d = (r[i]>>16) & 0xff; // next byte right
-	sub	eax,esi		;     r[i] <<= 8;// preserve this processed byte
-	xor	ecx,edx		;     if (c == d) { // coalesce nybbles into 1,
-	cmovz	r %+ i %+ d,eax	;      r[i] += 0x0000000100000000; // incr power
-	setz	cl		;      r[i] = (0xffffffff00000000 & r[i]) |
-	shl	r %+ i,8 ;[sic]	;            ((0x0000000000ffffff & r[i]) << 8);
-	shl	cl,3		;     }
+	and	edx,eax		;     d = r[i] & 0x00ff0000; // next byte right
+	shl	edx,8		;
+	sub	eax,esi		;     if (c == d << 8) {// coalesce them into 1,
+	xor	ecx,edx		;      r[i] += 0x0000000100000000; // incr power
+	cmovz	r %+ i %+ d,eax	;      r[i] = (0xffffffff00000000 & r[i]) |
+	setz	cl		;            ((0x0000000000ffffff & r[i]) << 8);
+	shl	r %+ i,8 ;[sic]	;     }
+	shl	cl,3		;     r[i] <<= 8;// preserve this processed byte
 	shl	r %+ i %+ d,cl	;    }
 %assign j j+1
 %endrep
-	shr	r %+ i %+ d,cl	;   r[i] >>= 32; // bias 32 bits right, now done
+	shr	r %+ i,24;[sic]	;   r[i] >>= 24; // bias into low 32 bits, done
 %assign i i+1
 %endrep
 	cmp	di,tilt_r	;   if (di == tilt_r)
