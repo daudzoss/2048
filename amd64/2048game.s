@@ -144,9 +144,19 @@ gamewon:
 move:	
 	push	rbp		;register uint64_t move(register uint8_t di,
 	mov	rbp,rsp		;                       register uint64_t si) {
-	mov	rax,rsi		; a = si; // default return value: si unaltered
-	
-	cmp	di,tilt_d	; if (di > tilt_d) return a; // caused SIGSEGV
+	mov	rax,nybmask	; register uint64_t a = 0xf0f0f0f0f0f0f0f, c, d;
+	mov	rcx,rsi		; register uint64_t r[4];
+	shr	rcx,4		; // upper two rows:
+	and	rcx,rax		; c = (si >> 4) & a;
+	mov	rdx,rsi		; // lower two rows:
+	and	rdx,rax		; d = si & a;
+	mov	rax,rsi		; a = si;// default return value is si unchanged
+
+	shld	r8,rcx,32	; r[0] = 0x00000000ffffffff & (c >> 32);
+	mov	r9,rcx		; r[1] = 0x00000000ffffffff & c;
+	shld	r10,rdx,32	; r[2] = 0x00000000ffffffff & (d >> 32);
+	mov	r11,rdx		; r[3] = 0x00000000ffffffff & d;
+	cmp	di,tilt_d	; if (di > tilt_d) return a;
 	jg	.Lbad		; switch (di) {
 	jne	.Lu		;  case tilt_d:
 	mov	rdi,rsi		;
@@ -179,20 +189,9 @@ move:
 .Ll:
 	cmp	di,tilt_l	;
 	jne	.Lbad		;  case tilt_l: // first bias left to remove 0s
-.L_l_r
-	mov	rax,nybmask	;   register uint64_t a = 0xf0f0f0f0f0f0f0f,c,d;
-	mov	rdx,rsi		;   register uint32_t r[4];
-	and	rdx,rax		;   // lower two rows:
-	mov	rcx,rsi		;   d = si & a;
-	shr	rcx,4		;   // upper two rows:
-	and	rcx,rax		;   c = (si >> 4) & a;
-	shld	r8,rcx,32	;   r[0] = 0x00000000ffffffff & (rcx >> 32);
-	mov	r9,rcx		;   r[1] = 0x00000000ffffffff & rcx;
-	shld	r10,rdx,32	;   r[2] = 0x00000000ffffffff & (rdx >> 32);
-	mov	r11,rdx		;   r[3] = 0x00000000ffffffff & rdx;
+.L_l_r:
 %assign	i 8
 %rep 4
-	printAnrCD i
 	mov	edx,r %+ i %+ d	;   for (int i = 0; i < 4; i++) { // each row
 %assign j 0
 %rep 4
@@ -210,7 +209,6 @@ move:
 %endrep	
 	shr	rdx,32		;    r[i] = d >> 32; // bias 32 bits right again
 	mov	r %+ i,rdx	;   }
-	printAnrCD i
 %assign i i+1
 %endrep
 	
