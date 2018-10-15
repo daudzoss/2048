@@ -15,6 +15,8 @@ extern uint64_t gamewon(uint64_t, uint64_t);
 
 extern uint64_t logbase2(uint64_t);
 
+extern uint64_t transpo(uint64_t);
+
 uint64_t print_em(uint64_t grid) {
   uint64_t em = empties(grid);
   uint64_t mask = 0x000000000000000f;
@@ -74,11 +76,22 @@ void printmov(int8_t mov, uint64_t old) {
 }
 
 void printwon(uint64_t exponent, uint64_t grid) {
+  uint64_t winners;
+
   print4x4(grid);
-  if (gamewon(exponent, grid))
-    printf("WINNER!\n");
-  else
+  if (winners = gamewon(exponent, grid)){
+    printf("2^%ld WINNER!\n", exponent);
+    print4x4(winners);
+  } else
     printf("not won\n");
+}
+
+void tran_test(void) {
+  if (transpo(transpo(gridempty)) != gridempty) printnew (gridempty);
+  if (transpo(transpo(lastempty)) != lastempty) printnew (lastempty);
+  if (transpo(transpo(outputseq)) != outputseq) printnew (outputseq);
+  if (transpo(transpo(noneempty)) != noneempty) printnew (noneempty);
+  if (transpo(transpo(oddsempty)) != oddsempty) printnew (oddsempty);
 }
 
 void drop_test(void) {
@@ -106,9 +119,9 @@ void win_test(uint64_t exponent) {
 }
 
 void main(void) {
-  printmov(2, oddsempty);
-//  for (int8_t i = -1; i <= +3; i++)
-//    dir_test(i);
-//  drop_test();
-//  win_test(logbase2(2048));
+  tran_test();
+  for (int8_t i = -1; i <= +3; i++)
+    dir_test(i);
+  drop_test();
+  win_test(logbase2(2048L));
 }

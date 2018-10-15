@@ -95,6 +95,7 @@ print4x4:
 	pop	rbp		;
 	ret			;} // print4x4()
 
+	global	transpo
 transpo:
 	push	rbp		;register uint64_t transpo(register uint64_t di)
 	mov	rbp,rsp		;{
@@ -122,8 +123,8 @@ gamewon:
 	push 	rbp		;register uint64_t gamewon(register uint64_t di,
 	mov	rbp,rsp		;                          register uint64_t si)
 	xor	rax,rax		;{register uint64_t a = 0;
-	mov	rcx,0xf		; for (int i = 0; i < 64; i += 4) {
-	and	rdi,rcx		; di &= 0x000000000000000f;//e.g. gamewon(11,x);
+	mov	rcx,0xf		; di &= 0x000000000000000f;//e.g. gamewon(11,x);
+	and	rdi,rcx		; for (int i = 0; i < 64; i += 4) {
 %assign	i 0
 %rep 16
 	mov	rdx,rcx		;
@@ -132,7 +133,7 @@ gamewon:
 	xor	r8,r8		;
 	cmp	rdx,rdi		;
 	cmovge	r8,rcx		;
-	or	rax,r8		;  a |= (si & c >= di << i) ? c : 0;
+	or	rax,r8		;  a |= ((si & c) >= (di << i)) ? c : 0;
 	shl	rcx,4		; }
 %assign i i+4
 %endrep
@@ -190,28 +191,29 @@ move:
 	cmp	di,tilt_l	;
 	jne	.Lbad		;  case tilt_l: // first bias left to remove 0s
 .L_l_r:
+
 %assign	i 8
 %rep 4
-	mov	edx,r %+ i %+ d	;   for (int i = 0; i < 4; i++) { // each row
-%assign j 0
+%assign	j 0
 %rep 4
-	mov	ecx,edx		;    d = r[i] & 0xffffffff; // working row copy
 %rep 3-j
-	shld	rcx,rdx,32	;    for (int j = 0; j < 4; j++) { // each col
-	ror	rcx,32		;     for (int k = 0; k < 4-j; k++) // up to 4x
-	rol	ecx,8		;      if (d & 0x00000000ff000000 == 0) // slide
-	or	cl,0		;       d = ((d>>32)<<32) | ((d&0xffffffff)<<8);
-	cmovz	rdx,rcx		;     d <<= 8; // preserve just-processed byte
+	mov	edx,r %+ i %+ d	;   for (int i = 0; i < 4; i++)     // each row
+	shr	r %+ i,32	;    for (int j = 0; j < 4; j++) {  // each col
+	shl	r %+ i,32	;     for (int k = 0; k < 4-j; k++) { // 1/2/3x
+	mov	ecx,edx		;      d = r[i] & 0xffffffff;
+	rol	ecx,8		;      if (d & 0xff000000 == 0) // bias to left
+	or	cl,0		;       d <<= 8;
+	cmovz	edx,ecx		;      r[i] = (r[i] & 0xffffffff00000000) | d;
+	or	r %+ i,rdx	;     }
 %endrep
-	shl	rdx,8		;    }
+	shl	r %+ i,8	;     r[i] <<= 8; // this digit's nonzero or end
+	printAnrCD i
+%assign	j j+1
+%endrep
+	shr	r %+ i,32	;    } // tilt complete, only end-of-row zeroes
+%assign	i i+1
+%endrep
 
-%assign j j+1
-%endrep	
-	shr	rdx,32		;    r[i] = d >> 32; // bias 32 bits right again
-	mov	r %+ i,rdx	;   }
-%assign i i+1
-%endrep
-	
 	mov rsi,0xffffffffff000000 ;   for (int i = 8; i < 12; i++) // each row
 %assign i 8
 %rep 4
@@ -225,11 +227,11 @@ move:
 	shr	edx,8		;
 	and	edx,r %+ i %+ d	;     d = r[i] & 0x00ff0000; // next byte right
 	cmovz	rax,r %+ i	;
-	shl	edx,8		;     if (c == d << 8) {// coalesce them into 1,
-	xor	ecx,edx		;      r[i] += 0x0000000100000000; // incr power
-	cmovz	r %+ i,rax	;      r[i] = (0xffffffff00000000 & r[i]) |
-	setz	cl		;            ((0x0000000000ffffff & r[i]) << 8);
-	and	edx,esi		;
+	shl	edx,8		;     if (c &&
+	xor	ecx,edx		;         c == d << 8) {// coalesce them into 1,
+	cmovz	r %+ i,rax	;      r[i] += 0x0000000100000000; // incr power
+	setz	cl		;      r[i] = (0xffffffff00000000 & r[i]) |
+	and	edx,esi		;            ((0x0000000000ffffff & r[i]) << 8);
 	setnz	dl		;
 	and	cl,dl		;     }
 	shl	cl,3		;
@@ -238,7 +240,7 @@ move:
 	shl	eax,cl		;
 	shl	rax,32		;
 	shr	r %+ i,32	;
-	shld	r %+ i,rax,32	;    }
+	shld	r %+ i,rax,32	;    } // coalesce complete, 2 adjacents now 1
 %assign j j+1
 %endrep
 	shr	r %+ i,24;[sic]	;   r[i] >>= 24; // bias into low 32 bits, done
