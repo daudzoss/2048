@@ -9,8 +9,11 @@ LDFLAGS =
 
 ME = Makefile
 
-2048tree : 2048tree.o 2048drop.o 2048game.o logbase2.o $(ME)
-	$(LD) 2048tree.o 2048drop.o 2048game.o logbase2.o -o 2048tree
+2048auto : 2048auto.o 2048drop.o 2048game.o logbase2.o $(ME)
+	$(LD) 2048auto.o 2048drop.o 2048game.o logbase2.o -o 2048auto
+
+2048auto.o : 2048auto.c $(ME)
+	$(CC) $(CCFLAGS) 2048auto.c
 
 2048test : 2048test.o 2048drop.o 2048game.o logbase2.o $(ME)
 	$(LD) 2048test.o 2048drop.o 2048game.o logbase2.o -o 2048test

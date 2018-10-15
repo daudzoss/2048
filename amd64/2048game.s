@@ -207,7 +207,6 @@ move:
 	or	r %+ i,rdx	;     }
 %endrep
 	shl	r %+ i,8	;     r[i] <<= 8; // this digit's nonzero or end
-	printAnrCD i
 %assign	j j+1
 %endrep
 	shr	r %+ i,32	;    } // tilt complete, only end-of-row zeroes
