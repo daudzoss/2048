@@ -21,7 +21,6 @@ printmov(int8_t mov, uint64_t old) {
   uint64_t new = move(mov, old);
   uint64_t i = mov + 2;
 
-  print4x4(old);
   printf("tilted %s (%d):\n", (i >= 0 && i < 5) ? dirname[i] : "INVALID", mov);
   print4x4(new);
   printf("\n\n");
