@@ -112,9 +112,10 @@ int main(int argc, char* argv[]) {
       putchar('\n');
       print4x4(grid);
     }
+    if (gamewon(/* 2 ^ */ 11, grid))
+      break;
   }
 
   printf("total moves: %d\n", moves);
-  moves = (moves < 256) ? moves : 255;
   done();
 }
