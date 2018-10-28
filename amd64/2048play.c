@@ -56,6 +56,31 @@ void termsetup(int newsetup){
 
 void done(void) { termsetup(0); exit(0); }
 
+char const* values[] = {"       ",
+                        "[   2] ",
+                        "[   4] ",
+                        "[   8] ",
+                        "[  16] ",
+                        "[  32] ",
+                        "[  64] ",
+                        "[ 128] ",
+                        "[ 256] ",
+                        "[ 512] ",
+                        "[1024] ",
+                        "[2048] ",
+                        "[2^12] ",
+                        "[2^13] ",
+                        "[2^14] ",
+                        "[2^15] "};
+
+void print4x4_C(register uint64_t di) {
+ int n, i, j = 0;
+
+ for (n = 0; n < 2; n++)
+  for (i = 60 - 4*n; i >= 0; i -= 8)
+   printf("%s%c", values[0xf & (di >> i)], ++j % 4 ? '\0' : '\n');
+} // print4x4_()
+
 int main(int argc, char* argv[]) {
   int moves = 0;
   grid_t grid = (argc > 1) ? strtol(argv[1], NULL, 16) : dropnew(gridempty);
@@ -76,12 +101,6 @@ int main(int argc, char* argv[]) {
       case 'k': case 'w': case '8': newgrid = grid_u; fputc('k', stderr); break;
       case 'l': case 'd': case '6': newgrid = grid_r; fputc('l', stderr); break;
       case 'q': case '\033': done();
-      case EOF:
-	print4x4(grid);
-	print4x4(grid_l);
-	print4x4(grid_d);
-	print4x4(grid_u);
-	print4x4(grid_r);
       default: continue;
       }
     else

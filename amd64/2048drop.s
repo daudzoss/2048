@@ -1,6 +1,6 @@
 %include "macrodef.s"
 
-altern	equ	0x5555555555555555
+altern	equ	0xaaaaaaaaaaaaaaaa
 
 	section	.text
 	global	empties
@@ -64,7 +64,7 @@ dropnew:
 	ror	rbx,4		;   c ^= (b = (b >> 4) | (b << 60)); // 16 xor
 %endrep
 	mov	rdi,altern	;  // c is random, or at least highly obfuscated
-	shr	rdi,cl		;  di = 0x5555555555555555 >> c;
+	shr	rdi,cl		;  di = 0xaaaaaaaaaaaaaaaa >> c;
 	and	rdi,3		;  di &= 3; // guaranteed to be 2=2^1 or 4=2^2
 	and	cl,0x3c		;  c &= 0x3c; // guaranteed 0,4,8,12,16,..,56,60
 	ror	rdi,cl		;  di = (di >> 4) | (di << 60);

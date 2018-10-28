@@ -53,11 +53,11 @@ print4x4:
 	push	rbp		;void print4x4(register uint64_t di) {
 	mov	rbp,rsp		;
 	lea	rsp,[rsp-32]	; auto uint8_t tile[16];
-	lea	rsi,[rsp+16]	; register uint64_t* si = tile;
-	mov	[rsp+8],r12	; di = (di&(0xff<<56)>>56) | (di&(0xff<<48)>>40)
-	mov	[rsp+0],rbx	;      |(di&(0xff<<40)>>24) | (di&(0xff<<32)>>8)
-	mov	rcx,nybmask	;      |(di&(0xff<<24)<<8) | (di&(0xff<<16)<<24)
-	bswap	rdi		;      |(di&(0xff<<8)<<40) | (di&(0xff<<0)<<56);
+	lea	rsi,[rsp+16]	; register uint8_t* si = tile;
+	mov	[rsp+8],r12	; di = (di&(0xffL<<56)>>56)|(di&(0xffL<<48)>>40)
+	mov	[rsp+0],rbx	;      |(di&(0xffL<<40)>>24)|(di&(0xffL<<32)>>8)
+	mov	rcx,nybmask	;      |(di&(0xffL<<24)<<8)|(di&(0xffL<<16)<<24)
+	bswap	rdi		;      |(di&(0xffL<<8)<<40)|(di&(0xffL<<0)<<56);
 	mov	rax,rdi		; // put pre-located tiles into rows 2,3
 	and	rax,rcx		; for (int i = 0; i < 8; i++)
 	mov	[rsi+8],rax	;  si[i+8] = (di >> (i*8)) & 0x0f;
