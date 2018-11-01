@@ -101,6 +101,25 @@ int main(int argc, char* argv[]) {
       case 'k': case 'w': case '8': newgrid = grid_u; fputc('k', stderr); break;
       case 'l': case 'd': case '6': newgrid = grid_r; fputc('l', stderr); break;
       case 'q': case '\033': done();
+      case 'H':
+      toggleH:
+	if ((newgrid = grid_l) == grid)
+	  break;
+	fputc('h', stderr);
+	moves++;
+	grid_u = move(tilt_u, grid = dropnew(newgrid));
+	putchar('\n');
+	print4x4(grid);
+      case 'K':
+      toggleK:
+	if ((newgrid = grid_u) == grid)
+	  break;
+	fputc('k', stderr);
+	moves++;
+	grid_l = move(tilt_l, grid = dropnew(newgrid));
+	putchar('\n');
+	print4x4(grid);
+	goto toggleH;
       default: continue;
       }
     else
