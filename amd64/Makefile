@@ -1,11 +1,11 @@
 AS = yasm
-ASFLAGS = -felf64 -gdwarf2
+ASFLAGS = -felf64 #-gdwarf2
 
 CC = gcc
-CCFLAGS = -g -c -std=c99
+CCFLAGS = -c -std=c99 -Os # -g
 
 LD = gcc
-LDFLAGS = 
+LDFLAGS = -Os
 
 ME = Makefile
 
