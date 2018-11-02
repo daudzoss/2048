@@ -29,7 +29,7 @@ extern grid_t dropnew(grid_t);
 
 extern grid_t move(tilt_t, grid_t);
 
-void termsetup(int newsetup){   
+static inline void termsetup(int newsetup){   
   //http://stackoverflow.com/questions/1798511/how-to-avoid-press-enter-with-any-getchar
   static struct termios oldt, newt;
 
@@ -54,7 +54,7 @@ void termsetup(int newsetup){
     tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
 }
 
-void done(void) { termsetup(0); exit(0); }
+static inline void done(void) { termsetup(0); exit(0); }
 
 char const* values[] = {"       ",
                         "[   2] ",
