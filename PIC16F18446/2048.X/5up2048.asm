@@ -15,73 +15,17 @@
 	__CONFIG _CONFIG5,_CP_OFF
 #endif
 
-;;; uncomment to reduce zOS footprint by 100 words (at cost of zOS_FRK/EXE/FND):
-;zOS_MIN	equ	1
-	
 	org	0
 	include zos.inc
 	include zosmacro.inc
-	
+;;; we need zOS_EXE in order to have the option to launch a program from console
+
 ;; software interrupt lines used: SI3 to print chars to console
 STDOUT1	equ	zOS_SI3	; SWI for job 1
 STDOUT2	equ	zOS_SI4	; SWI for job 2
 STDOUT3	equ	zOS_SI5	; SWI for job 3
 STDOUT4	equ	zOS_SI6	; SWI for job 4
 STDOUT5	equ	zOS_SI7	; SWI for job 5
-
-	pagesel	main
-	goto	main
-
-
-;;; 
-	include	game.inc	;// defines newgame() and turn()
-	include	io.inc		;// defines in_isr() and outgrid()
-
-	clrw			;void main(void) {
-main
-#if 0
-#ifdef __DEBUG
-	banksel	OSCCON
-	bsf	OSCCON,IRCF3	; // change from 0.5MHz default to 16MHz
-	movlb	0		;
-#endif
-
-	banksel	TRISA
-	bsf	TRISA,RA7	; TRISA = 0xb0;
-	bcf	TRISA,RA6	; // xtal <--------startup error? race cond'n?
-	bsf	TRISA,RA5	; // MCLR
-	bsf	TRISA,OPTO1	; // RA4 is I1
-	bcf	TRISA,RELAY1	; // RA3 is O1
-	bcf	TRISA,RELAY2	; // RA2 is O2
-	bcf	TRISA,RELAY3	; // RA1 is O3
-	bcf	TRISA,RELAY4	; // RA0 is O4
-	bsf	TRISB,RB7	; TRISB = 0xdb;
-	bsf	TRISB,RB6	; // ICSP
-	bcf	TRISB,HBEAT	; // RB5 is HBEAT
-	bsf	TRISB,OPTO4	; // RB4 is I4
-	bsf	TRISB,OPTO3	; // RB3 is I3
-	bcf	TRISB,RB2	; // RB2 is TXD
-	bsf	TRISB,RB1	; // RB1 is RXD
-	bsf	TRISB,OPTO2	; // RB0 is I2
-
-	banksel	ANSELA
-	clrf	ANSELA		; ANSELA = 0x00; // no analog
-	clrf	ANSELB		; ANSELB = 0x00; // no analog
-
-	banksel	OPTION_REG
-	bcf	OPTION_REG,T0CS	; OPTION_REG &= ~(1<<TMR0CS);// off Fosc not pin
-	bcf	OPTION_REG,PSA	; OPTION_REG &= ~(1<<PSA);// using max prescaler
-
-	banksel	IOCBP
-	movf	ALL_IOC,w	;
-	movwf	IOCBP		; IOCBP = all_ioc; // IOCIF senses rising optos
-	movwf	IOCBN		; IOCBN = all_ioc; // IOCIF senses falling optos
-	
-	movlb	0		; // this has to happen at end after all zOS_LAU
-	bsf	INTCON,IOCIE	; INTCON |= 1<<IOCIE; // enable edge sensing HWI
-	clrf	ALL_IOC		; ALL_IOC = 0; // will go nonzero once zOS_CON()
-#endif
-	
 
 HBPORT1	equ	LATA
 HBPIN1	equ	2		; Free PIC16F18446 evaluation board (April 2018)
@@ -114,6 +58,71 @@ HBPORT5	equ	0
 HBPIN5	equ	0
 RTSFLG5	equ	0		; only on PIC18 for now :'(
 #endif
+
+	pagesel	main
+	goto	main
+
+;;; 
+	include	game.inc	;// defines newgame() and turn()
+	include	io.inc		;// defines in_isr() and outgrid()
+
+	clrw			;void main(void) {
+main
+#ifdef __DEBUG
+#else
+	banksel	OSCCON1
+	movlw	0x60		; // change from 0.5MHz default to 16MHz w/o PLL
+;	movlw	0x10		; // change from 0.5MHz default to 32MHz w/2xPLL
+	movwf	OSCCON1		; OSCCON1 = 6<<NOSC0;
+	btfss	OSCCON3,ORDY	; while (OSCCON3 & (1<<ORDY))
+	bra	$-1		;  ;
+	movlb	0		;
+#endif
+	banksel	TRISA
+#ifdef CURIOSITY_NANO
+	bsf	TRISA,RA7	; TRISA = 0xfb;
+	bsf	TRISA,RA6	; // RA7 and RA6 not bonded out in 20-pin QFN
+	bsf	TRISA,RA5	; // RA5 SOSCI 32.768kHz crystal
+	bsf	TRISA,RA4	; // RA4 SOSCO 32.768kHz crystal
+	bsf	TRISA,RA3	; // RA3 MCLR
+	bcf	TRISA,RA2	; // RA2 LED heartbeat indicator on TMR0
+	bsf	TRISA,RA1	; // RA1 ICSPCLK
+	bcf	TRISA,RA0	; // RA0 ICSPDAT
+	bcf	TRISB,RB7	; TRISB = 0x1f;
+	bcf	TRISB,RB5	; // RB7 and RB5 are open-drain I2C SCL and SCK
+	bcf	TRISB,RB6	; // RB6 is microcontroller TX (output), host RX
+	bsf	TRISB,RB4	; // RB4 is microcontroller RX (input), host TX
+	bcf	TRISB,RB3	; // RB3 not bonded out in 20-pin QFN
+	bcf	TRISB,RB2	; // RB2 not bonded out in 20-pin QFN
+	bcf	TRISB,RB1	; // RB1 not bonded out in 20-pin QFN
+	bcf	TRISB,RB0	; // RB0 not bonded out in 20-pin QFN
+	bcf	TRISC,RC7	; TRISC = 0x17;
+	bcf	TRISC,RC6	; // RC7 and RC6 SPI SS and SCK respectively
+	bcf	TRISC,RC5	; // RC5 is SPI MOSI (microcontroller as host)
+	bsf	TRISC,RC4	; // RC4 is SPI MISO (microcontroller as host)
+	bcf	TRISC,RC3	; // RC3 is PWM output
+	bsf	TRISC,RC2	; // RC2 is SW
+	bsf	TRISC,RC1	; // RC1 is ADC1
+	bsf	TRISC,RC0	; // RC0 is ADC0
+
+	banksel	ANSELA
+	clrf	ANSELA		; ANSELA = 0x00; // no analog
+	clrf	ANSELB		; ANSELB = 0x00; // no analog
+	movlw	0x03		;
+	movwf	ANSELC		; ANSELC = 0x03; // only two ADC inputs
+
+	banksel T0CON0
+	movlw	1<T0EN		;
+	movwf	T0CON0		; T0CON0 = 0x80; // TMR0 enabled, 8-bit, no post
+	movlw	0x5f		;
+	movwf	T0CON1		; T0CON1 = 0x5f; // TMR0 Fosc/4, async, max pre
+
+	movlb	0		; // this has to happen at end after all zOS_LAU
+	bsf	INTCON,IOCIE	; INTCON |= 1<<IOCIE; // enable edge sensing HWI
+	clrf	ALL_IOC		; ALL_IOC = 0; // will go nonzero once zOS_CON()
+#endif
+	
+
 
 CLKRAT1	equ	.032000000/.000009600
 CLKRAT2	equ	.032000000/.000009600
