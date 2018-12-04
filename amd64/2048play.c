@@ -76,7 +76,7 @@ char const* values[] = {"       ",
 void print4x4_c(register uint64_t di) {
  int n, i, j = 0;
 
- printf("%016X\n", di);
+ fprintf(stderr, "%016lX\n", di);
  for (n = 0; n < 2; n++)
   for (i = 60 - 4*n; i >= 0; i -= 8)
    printf("%s%c", values[0xf & (di >> i)], ++j % 4 ? '\0' : '\n');
@@ -84,9 +84,9 @@ void print4x4_c(register uint64_t di) {
 
 int main(int argc, char* argv[]) {
   int moves = 0;
-  grid_t grid = (argc > 1) ? strtol(argv[1], NULL, 16) : dropnew(gridempty);
+  grid_t grid = (argc > 1) ? strtoul(argv[1], NULL, 16) : dropnew(gridempty);
 
-  print4x4(grid);
+  print4x4_c(grid);
   termsetup(1);
   while (1) {
     grid_t newgrid, grid_l, grid_d, grid_u, grid_r;
@@ -97,10 +97,10 @@ int main(int argc, char* argv[]) {
     grid_r = move(tilt_r, grid);
     if (grid ^ grid_l || grid ^ grid_d || grid ^ grid_u || grid ^ grid_r)
       switch (getchar()) {
-      case 'h': case 'a': case '4': newgrid = grid_l; fputc('h', stderr); break;
-      case 'j': case 's': case '2': newgrid = grid_d; fputc('j', stderr); break;
-      case 'k': case 'w': case '8': newgrid = grid_u; fputc('k', stderr); break;
-      case 'l': case 'd': case '6': newgrid = grid_r; fputc('l', stderr); break;
+      case 'h':case 'a':/*case'4':*/newgrid = grid_l; fputc('h', stderr); break;
+      case 'j':case 's':/*case'2':*/newgrid = grid_d; fputc('j', stderr); break;
+      case 'k':case 'w':/*case'8':*/newgrid = grid_u; fputc('k', stderr); break;
+      case 'l':case 'd':/*case'6':*/newgrid = grid_r; fputc('l', stderr); break;
       case 'q': case '\033': done();
       case 'H':
       toggleH:
