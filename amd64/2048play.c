@@ -73,9 +73,10 @@ char const* values[] = {"       ",
                         "[2^14] ",
                         "[2^15] "};
 
-void print4x4_C(register uint64_t di) {
+void print4x4_c(register uint64_t di) {
  int n, i, j = 0;
 
+ printf("%016X\n", di);
  for (n = 0; n < 2; n++)
   for (i = 60 - 4*n; i >= 0; i -= 8)
    printf("%s%c", values[0xf & (di >> i)], ++j % 4 ? '\0' : '\n');
@@ -129,7 +130,7 @@ int main(int argc, char* argv[]) {
       moves++;
       grid = dropnew(newgrid); 
       putchar('\n');
-      print4x4(grid);
+      print4x4_c(grid);
     }
     if (gamewon(/* 2 ^ */ 11, grid))
       break;
