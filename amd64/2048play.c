@@ -124,7 +124,7 @@ int main(int argc, char* argv[]) {
       default: continue;
       }
     else
-      done(0); // full
+      done(1); // full
 
     if (newgrid != grid) {
       moves++;
@@ -136,6 +136,5 @@ int main(int argc, char* argv[]) {
       break;
   }
 
-  printf("total moves: %d\n", moves);
   done(11); // won
 }

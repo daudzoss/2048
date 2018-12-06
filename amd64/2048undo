@@ -7,3 +7,5 @@ while ./2048play $hexstate 2>> 2048game.log; do
   head -n -1 < 2048game.prv > 2048game.log
   rm 2048game.prv
 done
+echo -n "total moves: "
+wc -l < 2048game.log
