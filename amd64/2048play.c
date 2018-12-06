@@ -54,7 +54,7 @@ static inline void termsetup(int newsetup){
     tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
 }
 
-static inline void done(void) { termsetup(0); exit(0); }
+static inline void done(int code) { termsetup(0); exit(code); }
 
 char const* values[] = {"       ",
                         "[   2] ",
@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
   int moves = 0;
   grid_t grid = (argc > 1) ? strtoul(argv[1], NULL, 16) : dropnew(gridempty);
 
-  print4x4_c(grid);
+  print4x4(grid);
   termsetup(1);
   while (1) {
     grid_t newgrid, grid_l, grid_d, grid_u, grid_r;
@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) {
       case 'j':case 's':/*case'2':*/newgrid = grid_d; fputc('j', stderr); break;
       case 'k':case 'w':/*case'8':*/newgrid = grid_u; fputc('k', stderr); break;
       case 'l':case 'd':/*case'6':*/newgrid = grid_r; fputc('l', stderr); break;
-      case 'q': case '\033': done();
+      case 'q': case '\033': done(0); // quit
       case 'H':
       toggleH:
 	if ((newgrid = grid_l) == grid)
@@ -124,7 +124,7 @@ int main(int argc, char* argv[]) {
       default: continue;
       }
     else
-      done();
+      done(0); // full
 
     if (newgrid != grid) {
       moves++;
@@ -137,5 +137,5 @@ int main(int argc, char* argv[]) {
   }
 
   printf("total moves: %d\n", moves);
-  done();
+  done(11); // won
 }
