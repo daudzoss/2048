@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) {
       case 'j':case 's':/*case'2':*/newgrid = grid_d; fputc('j', stderr); break;
       case 'k':case 'w':/*case'8':*/newgrid = grid_u; fputc('k', stderr); break;
       case 'l':case 'd':/*case'6':*/newgrid = grid_r; fputc('l', stderr); break;
-      case 'q': case '\033': done(0); // quit
+      case 'q': case 'u': case '\033': done(0); // quit
       case 'H':
       toggleH:
 	if ((newgrid = grid_l) == grid)
