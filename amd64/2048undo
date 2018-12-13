@@ -1,7 +1,11 @@
 #!/bin/bash
-hexstate=1
+if [ -n "$1" ]; then
+  hexstate=$1
+else
+  hexstate=1
+fi
 rm 2048game.log
-while ./2048play $hexstate 2>> 2048game.log; do
+while 2048play $hexstate 2>> 2048game.log; do
   hexstate=`tail -2 2048game.log | head -1 | sed -e "s/[^0-9a-fA-F]//"`
   mv 2048game.log 2048game.prv
   head -n -1 < 2048game.prv > 2048game.log
