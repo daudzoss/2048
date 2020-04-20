@@ -71,9 +71,9 @@ int dropGrid(int* g, int NxNy, int v, int zer) {
   return -1; // found no zeros, grid full
 }
 
-inline int ishoriz(int x) { return ((x+1 == 0) || (x-1 == 0)) ? 1 : 0; }
+/*inline*/ int ishoriz(int x) { return ((x+1 == 0) || (x-1 == 0)) ? 1 : 0; }
 
-inline void done(int* grid){ free(grid); termsetup(0); exit(0); }
+/*inline*/ void done(int* grid){ free(grid); termsetup(0); exit(0); }
 
 int main(int argc, char** argv) {
   int i/*, j, k, l*/;
@@ -215,12 +215,12 @@ int main(int argc, char** argv) {
      chk(status, "clEnqueueReadBuffer", NULL, NULL);
 
      for (i = (nElements == xDim) ? yDim-1 : xDim-1; i >= 0; i--)
-{
-  printf("%d ", invalid[nElements]);
+     /*{
+       printf("%d ", invalid[nElements]);*/
        if (!invalid[i])
 	 break; // found a valid move, so i will be >= 0
-}
-printf("\n");
+     /*}
+printf("\n");*/
      if (i >= 0) {
        dropGrid(grid, xDim*yDim, 2<<(1&random()), random()&((1<<(xLog+yLog))-1));
        printGrid(grid, xDim, yDim);

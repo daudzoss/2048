@@ -34,7 +34,7 @@
   } else {
     *final = *initial - dir*(n-1); // adds a positive integer
   }
-printf("workitem %d goes from %d to %d step %d", id, *initial, *final, -dir);
+// printf("workitem %d goes from %d to %d step %d", id, *initial, *final, -dir);
 }
 
 int slide(
